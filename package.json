@@ -1,0 +1,26 @@
+{
+  "name": "studio-eighty7---dark-mode-redesign",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview",
+    "sri:generate": "curl -sL https://cdn.tailwindcss.com | openssl dgst -sha384 -binary | openssl base64 -A"
+  },
+  "dependencies": {
+    "@google/genai": "^1.34.0",
+    "lucide-react": "^0.562.0",
+    "react": "^19.2.3",
+    "react-dom": "^19.2.3"
+  },
+  "devDependencies": {
+    "@types/node": "^22.19.3",
+    "@vitejs/plugin-react": "^5.0.0",
+    "terser": "^5.44.1",
+    "typescript": "~5.8.2",
+    "vite": "^6.2.0",
+    "zod": "^4.2.1"
+  }
+}
