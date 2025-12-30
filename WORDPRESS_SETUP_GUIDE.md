@@ -10,19 +10,112 @@ This guide shows you how to connect your WordPress backend to your React fronten
 
 ## Step 1: Install Required Plugins
 
-### Install these WordPress plugins:
+1.  **Advanced Custom Fields (ACF)** - Required for data points like Release Year and Audio URLs.
 
-1. **Advanced Custom Fields (ACF)** - Free version is fine
-2. **Custom Post Type UI** (optional) - Easier for managing custom post types
-3. **WP REST API Controller** (if needed for custom post types)
+---
 
-### Install ACF:
+## Method A: Use the WordPress Interface (Manual)
 
-- Go to Plugins > Add New
-- Search "Advanced Custom Fields"
-- Install and Activate
+_Follow Step 2 through Step 6 below to click through the menus._
 
-## Step 2: Create Custom Post Type for Albums (Using ACF)
+---
+
+## Method B: Use PHP Code (Fastest) 🚀
+
+If you want to skip all the clicking, copy the code block below and paste it into your theme's **`functions.php`** file (or use the **"Code Snippets"** plugin).
+
+This one block will create all the Post Types and all the Fields for you automatically.
+
+```php
+/**
+ * Studio Eighty7 - Full Automation Script
+ * This registers Albums, Tracks, Services, and all ACF Fields
+ */
+add_action('init', function() {
+    // 1. REGISTER POST TYPES
+    $types = array(
+        'album' => 'Albums',
+        'track' => 'Tracks',
+        'service' => 'Services'
+    );
+    foreach ($types as $slug => $label) {
+        register_post_type($slug, array(
+            'labels' => array('name' => $label, 'singular_name' => substr($label, 0, -1)),
+            'public' => true,
+            'show_in_rest' => true,
+            'supports' => array('title', 'editor', 'thumbnail', 'excerpt'),
+            'menu_icon' => ($slug == 'album' ? 'dashicons-album' : ($slug == 'track' ? 'dashicons-media-audio' : 'dashicons-admin-tools')),
+        ));
+    }
+
+    // 2. REGISTER ACF FIELDS (Works if ACF is installed)
+    if(function_exists('acf_add_local_field_group')) {
+
+        // Album Details
+        acf_add_local_field_group(array(
+            'key' => 'group_album_details',
+            'title' => 'Album Details',
+            'fields' => array(
+                array('key' => 'field_subtitle', 'label' => 'Subtitle', 'name' => 'subtitle', 'type' => 'text'),
+                array('key' => 'field_year', 'label' => 'Release Year', 'name' => 'year', 'type' => 'text'),
+                array('key' => 'field_tracks', 'label' => 'Number of Tracks', 'name' => 'tracks', 'type' => 'number'),
+                array('key' => 'field_album_art', 'label' => 'Album Art', 'name' => 'album_art', 'type' => 'image', 'return_format' => 'url'),
+                array('key' => 'field_spotify', 'label' => 'Spotify URL', 'name' => 'spotify_url', 'type' => 'url'),
+                array('key' => 'field_apple', 'label' => 'Apple Music URL', 'name' => 'apple_music_url', 'type' => 'url'),
+            ),
+            'location' => array(array(array('param' => 'post_type', 'operator' => '==', 'value' => 'album'))),
+        ));
+
+        // Track Details
+        acf_add_local_field_group(array(
+            'key' => 'group_track_details',
+            'title' => 'Track Details',
+            'fields' => array(
+                array('key' => 'field_artist', 'label' => 'Artist', 'name' => 'artist', 'type' => 'text', 'default_value' => 'Tek-Domain'),
+                array('key' => 'field_duration', 'label' => 'Duration (Optional)', 'name' => 'duration', 'type' => 'text', 'instructions' => 'Leave blank to auto-detect from audio file.'),
+                array('key' => 'field_genre', 'label' => 'Genre', 'name' => 'genre', 'type' => 'select',
+                    'choices' => array('hip-hop'=>'Hip-Hop', 'trap'=>'Trap', 'rnb'=>'R&B', 'kompa'=>'Kompa', 'afro'=>'Afro')),
+                array('key' => 'field_audio_url', 'label' => 'Audio File', 'name' => 'audio_url', 'type' => 'file', 'return_format' => 'url'),
+            ),
+            'location' => array(array(array('param' => 'post_type', 'operator' => '==', 'value' => 'track'))),
+        ));
+    }
+});
+
+/**
+ * Robust Auto-detect duration from audio file
+ * This runs AFTER the post is saved to ensure all fields are ready
+ */
+add_action('acf/save_post', function($post_id) {
+    // Only run for the 'track' post type
+    if (get_post_type($post_id) !== 'track') return;
+
+    // Check if duration is already set. If not, try to auto-detect.
+    $duration = get_field('duration', $post_id);
+
+    if (empty($duration)) {
+        // Get the audio file URL
+        $audio_url = get_field('audio_url', $post_id);
+
+        if ($audio_url) {
+            // Convert URL to ID
+            $attachment_id = attachment_url_to_postid($audio_url);
+
+            if ($attachment_id) {
+                // Get WordPress's own audio metadata
+                $metadata = wp_get_attachment_metadata($attachment_id);
+
+                if (!empty($metadata['length_formatted'])) {
+                    // Save the formatted length (e.g. "3:42") back to the field
+                    update_field('duration', $metadata['length_formatted'], $post_id);
+                }
+            }
+        }
+    }
+}, 20);
+```
+
+---
 
 Since you have **Advanced Custom Fields (ACF)** installed, you can create the post types directly in ACF. This is the recommended way.
 
