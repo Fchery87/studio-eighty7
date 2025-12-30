@@ -229,10 +229,9 @@ export const fetchTracks = async (): Promise<any[]> => {
           (rawAudioUrl ? await resolveAudioUrl(rawAudioUrl as WPMediaRef) : '');
 
         // Get duration from meta first (native), then ACF, then fallback
-        const duration =
-          (track.meta?.duration as string) ||
-          (getAcf('duration') as string) ||
-          '3:00';
+        const metaDuration = track.meta?.duration as string;
+        const acfDuration = getAcf('duration') as string;
+        const duration = metaDuration || acfDuration || '3:00';
 
         return {
           id: track.id.toString(),

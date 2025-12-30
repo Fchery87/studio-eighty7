@@ -12,6 +12,7 @@ const TrackPlayer: React.FC = () => {
   const [duration, setDuration] = useState(0);
   const [volume, setVolume] = useState(0.8);
   const [isMuted, setIsMuted] = useState(false);
+  const [trackDurations, setTrackDurations] = useState<Record<string, string>>({});
 
   const audioRef = useRef<HTMLAudioElement>(null);
   const track = tracks[currentTrack];
@@ -78,8 +79,12 @@ const TrackPlayer: React.FC = () => {
   };
 
   const handleLoadedMetadata = () => {
-    if (audioRef.current) {
-      setDuration(audioRef.current.duration);
+    if (audioRef.current && track) {
+      const realDuration = audioRef.current.duration;
+      setDuration(realDuration);
+      // Store the formatted duration for this track
+      const formatted = formatTime(realDuration);
+      setTrackDurations(prev => ({ ...prev, [track.id]: formatted }));
     }
   };
 
@@ -169,7 +174,9 @@ const TrackPlayer: React.FC = () => {
                   <div className="text-sm text-gray-400">{t.artist} • {t.genre}</div>
                 </div>
 
-                <div className="text-gray-500 font-mono text-sm">{t.duration}</div>
+                <div className="text-gray-500 font-mono text-sm">
+                  {trackDurations[t.id] || (t.duration !== '3:00' ? t.duration : '--:--')}
+                </div>
 
                 {currentTrack === index ? (
                   <button onClick={(e) => { e.stopPropagation(); togglePlay(); }} className="p-2 text-samurai-red">
