@@ -104,7 +104,8 @@ type WPMediaRef =
 
 const parseMediaId = (value: number | string | undefined) => {
   if (typeof value === 'number') return value;
-  if (typeof value === 'string' && /^\d+$/.test(value)) return parseInt(value, 10);
+  if (typeof value === 'string' && /^\d+$/.test(value))
+    return parseInt(value, 10);
   return undefined;
 };
 
@@ -183,8 +184,7 @@ const resolveAudioUrl = async (
     if (typeof audioUrl.url === 'string') return audioUrl.url;
     if (typeof audioUrl.source_url === 'string') return audioUrl.source_url;
 
-    const mediaId =
-      parseMediaId(audioUrl.ID) ?? parseMediaId(audioUrl.id);
+    const mediaId = parseMediaId(audioUrl.ID) ?? parseMediaId(audioUrl.id);
     if (mediaId !== undefined) {
       return fetchMediaUrl(mediaId);
     }
@@ -215,18 +215,17 @@ export const fetchTracks = async (): Promise<any[]> => {
         const contentAudioUrl = extractAudioUrlFromContent(
           track.content?.rendered
         );
-        const rawAudioUrl =
-          track.acf?.audio_url ?? track.meta?.audio_url ?? '';
+        const rawAudioUrl = track.acf?.audio_url ?? track.meta?.audio_url ?? '';
         const audioUrl =
           contentAudioUrl ||
-          (rawAudioUrl
-            ? await resolveAudioUrl(rawAudioUrl as WPMediaRef)
-            : '');
+          (rawAudioUrl ? await resolveAudioUrl(rawAudioUrl as WPMediaRef) : '');
         return {
           id: track.id.toString(),
           title: track.title.rendered,
-          artist: track.acf?.artist || 'Tek-Domain',
-          duration: track.acf?.duration || '3:00',
+          artist:
+            track.acf?.artist || (track.meta?.artist as string) || 'Tek-Domain',
+          duration:
+            (track.meta?.duration as string) || track.acf?.duration || '3:00',
           cover:
             track._embedded?.['wp:featuredmedia']?.[0]?.source_url ||
             '/placeholder.svg',
