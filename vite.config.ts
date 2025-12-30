@@ -10,7 +10,7 @@ const DEV_CSP = [
   "font-src 'self' https://fonts.gstatic.com https://fonts.googleapis.com",
   "img-src 'self' https: data: http://localhost:*",
   "connect-src 'self' https: http: ws: wss:",
-  "media-src 'self'",
+  "media-src 'self' https://studioeighty7.com",
   "object-src 'none'",
   "base-uri 'self'",
   "form-action 'self'",
@@ -25,7 +25,7 @@ const PROD_CSP = [
   "font-src 'self' https://fonts.gstatic.com https://fonts.googleapis.com",
   "img-src 'self' https: data:",
   "connect-src 'self' https://studioeighty7.com https://generativelanguage.googleapis.com",
-  "media-src 'self'",
+  "media-src 'self' https://studioeighty7.com",
   "object-src 'none'",
   "base-uri 'self'",
   "form-action 'self'",
@@ -82,7 +82,7 @@ export default defineConfig({
         target: 'https://studioeighty7.com/index.php',
         changeOrigin: true,
         secure: true,
-        rewrite: (path) => path.replace(/^\/wp-api/, '?rest_route=/wp/v2'),
+        rewrite: (path) => path.replace(/^\/wp-api/, ''),
         configure: (proxy, _options) => {
           proxy.on('error', (err, _req, _res) => {
             // Silently handle WordPress API errors - app will use mock data

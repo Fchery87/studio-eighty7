@@ -27,92 +27,155 @@ If you want to skip all the clicking, copy the code block below and paste it int
 This one block will create all the Post Types and all the Fields for you automatically.
 
 ```php
+<?php
 /**
- * Studio Eighty7 - Full Automation Script
- * This registers Albums, Tracks, Services, and all ACF Fields
+ * Plugin Name: Studio Eighty7 - Headless Audio Core
+ * Description: Robust Custom Post Types, Metadata Extraction, and REST API optimization for Studio Eighty7.
+ * Version: 1.1.0
+ */
+
+if (!defined('ABSPATH')) exit;
+
+/**
+ * 1. REGISTER POST TYPES (Albums, Tracks, Services)
  */
 add_action('init', function() {
-    // 1. REGISTER POST TYPES
-    $types = array(
-        'album' => 'Albums',
-        'track' => 'Tracks',
-        'service' => 'Services'
+    $common_args = array(
+        'public' => true,
+        'show_in_rest' => true,
+        'has_archive' => false,
+        'supports' => array('title', 'editor', 'thumbnail', 'excerpt', 'custom-fields'),
     );
-    foreach ($types as $slug => $label) {
-        register_post_type($slug, array(
-            'labels' => array('name' => $label, 'singular_name' => substr($label, 0, -1)),
-            'public' => true,
+
+    register_post_type('album', array_merge($common_args, array(
+        'labels' => array('name' => 'Albums', 'singular_name' => 'Album'),
+        'menu_icon' => 'dashicons-album',
+    )));
+
+    register_post_type('track', array_merge($common_args, array(
+        'labels' => array('name' => 'Tracks', 'singular_name' => 'Track'),
+        'menu_icon' => 'dashicons-media-audio',
+    )));
+
+    register_post_type('service', array_merge($common_args, array(
+        'labels' => array('name' => 'Services', 'singular_name' => 'Service'),
+        'menu_icon' => 'dashicons-admin-tools',
+    )));
+});
+
+/**
+ * 2. REGISTER NATIVE METADATA
+ * This exposes the fields directly under the 'meta' key in the REST API.
+ */
+add_action('init', function() {
+    $meta_fields = array(
+        'audio_url' => 'esc_url_raw',
+        'duration'  => 'sanitize_text_field',
+        'artist'    => 'sanitize_text_field',
+        'genre'     => 'sanitize_text_field',
+        'album_id'  => 'absint'
+    );
+
+    foreach ($meta_fields as $meta_key => $sanitize_cb) {
+        register_post_meta('track', $meta_key, array(
+            'type' => ($meta_key === 'album_id' ? 'integer' : 'string'),
+            'single' => true,
             'show_in_rest' => true,
-            'supports' => array('title', 'editor', 'thumbnail', 'excerpt'),
-            'menu_icon' => ($slug == 'album' ? 'dashicons-album' : ($slug == 'track' ? 'dashicons-media-audio' : 'dashicons-admin-tools')),
-        ));
-    }
-
-    // 2. REGISTER ACF FIELDS (Works if ACF is installed)
-    if(function_exists('acf_add_local_field_group')) {
-
-        // Album Details
-        acf_add_local_field_group(array(
-            'key' => 'group_album_details',
-            'title' => 'Album Details',
-            'fields' => array(
-                array('key' => 'field_subtitle', 'label' => 'Subtitle', 'name' => 'subtitle', 'type' => 'text'),
-                array('key' => 'field_year', 'label' => 'Release Year', 'name' => 'year', 'type' => 'text'),
-                array('key' => 'field_tracks', 'label' => 'Number of Tracks', 'name' => 'tracks', 'type' => 'number'),
-                array('key' => 'field_album_art', 'label' => 'Album Art', 'name' => 'album_art', 'type' => 'image', 'return_format' => 'url'),
-                array('key' => 'field_spotify', 'label' => 'Spotify URL', 'name' => 'spotify_url', 'type' => 'url'),
-                array('key' => 'field_apple', 'label' => 'Apple Music URL', 'name' => 'apple_music_url', 'type' => 'url'),
-            ),
-            'location' => array(array(array('param' => 'post_type', 'operator' => '==', 'value' => 'album'))),
-        ));
-
-        // Track Details
-        acf_add_local_field_group(array(
-            'key' => 'group_track_details',
-            'title' => 'Track Details',
-            'fields' => array(
-                array('key' => 'field_artist', 'label' => 'Artist', 'name' => 'artist', 'type' => 'text', 'default_value' => 'Tek-Domain'),
-                array('key' => 'field_duration', 'label' => 'Duration (Optional)', 'name' => 'duration', 'type' => 'text', 'instructions' => 'Leave blank to auto-detect from audio file.'),
-                array('key' => 'field_genre', 'label' => 'Genre', 'name' => 'genre', 'type' => 'select',
-                    'choices' => array('hip-hop'=>'Hip-Hop', 'trap'=>'Trap', 'rnb'=>'R&B', 'kompa'=>'Kompa', 'afro'=>'Afro')),
-                array('key' => 'field_audio_url', 'label' => 'Audio File', 'name' => 'audio_url', 'type' => 'file', 'return_format' => 'url'),
-            ),
-            'location' => array(array(array('param' => 'post_type', 'operator' => '==', 'value' => 'track'))),
+            'sanitize_callback' => $sanitize_cb,
         ));
     }
 });
 
 /**
- * Robust Auto-detect duration from audio file
- * This runs AFTER the post is saved to ensure all fields are ready
+ * 3. HELPER: EXTRACT AUDIO URL FROM BLOCKS OR CONTENT
  */
-add_action('acf/save_post', function($post_id) {
-    // Only run for the 'track' post type
-    if (get_post_type($post_id) !== 'track') return;
-
-    // Check if duration is already set. If not, try to auto-detect.
-    $duration = get_field('duration', $post_id);
-
-    if (empty($duration)) {
-        // Get the audio file URL
-        $audio_url = get_field('audio_url', $post_id);
-
-        if ($audio_url) {
-            // Convert URL to ID
-            $attachment_id = attachment_url_to_postid($audio_url);
-
-            if ($attachment_id) {
-                // Get WordPress's own audio metadata
-                $metadata = wp_get_attachment_metadata($attachment_id);
-
-                if (!empty($metadata['length_formatted'])) {
-                    // Save the formatted length (e.g. "3:42") back to the field
-                    update_field('duration', $metadata['length_formatted'], $post_id);
+function se87_extract_audio_url($content) {
+    // Try Gutenberg blocks first
+    if (function_exists('parse_blocks')) {
+        $blocks = parse_blocks($content);
+        foreach ($blocks as $block) {
+            if ($block['blockName'] === 'core/audio' || $block['blockName'] === 'core/file') {
+                if (!empty($block['attrs']['id'])) {
+                    $url = wp_get_attachment_url((int)$block['attrs']['id']);
+                    if ($url) return $url;
                 }
+                if (!empty($block['attrs']['src'])) return $block['attrs']['src'];
+                if (!empty($block['attrs']['href'])) return $block['attrs']['href'];
             }
         }
     }
-}, 20);
+
+    // Fallback to Regex for Classic Editor / HTML
+    if (preg_match('/<audio[^>]*src=["\']([^"']+)["\']/i', $content, $m)) return $m[1];
+    if (preg_match('/<source[^>]*src=["\']([^"']+)["\']/i', $content, $m)) return $m[1];
+    if (preg_match('/href=["\']([^"']+\.(mp3|wav|m4a|ogg)(\?[^"']*)?)["\']/i', $content, $m)) return $m[1];
+
+    return '';
+}
+
+/**
+ * 4. SYNC METADATA & AUTO-DETECT DURATION
+ * Runs whenever a track is saved.
+ */
+add_action('save_post_track', function($post_id, $post) {
+    if (defined('DOING_AUTOSAVE') && DOING_AUTOSAVE) return;
+    if (wp_is_post_revision($post_id)) return;
+
+    $audio_url = get_post_meta($post_id, 'audio_url', true);
+
+    // A. Resolve ID to URL if stored as ID
+    if (is_numeric($audio_url) && $audio_url > 0) {
+        $url = wp_get_attachment_url((int)$audio_url);
+        if ($url) {
+            update_post_meta($post_id, 'audio_url', esc_url_raw($url));
+            $audio_url = $url;
+        }
+    }
+
+    // B. Auto-extract from content if meta is empty
+    if (empty($audio_url)) {
+        $extracted = se87_extract_audio_url($post->post_content);
+        if ($extracted) {
+            update_post_meta($post_id, 'audio_url', esc_url_raw($extracted));
+            $audio_url = $extracted;
+        }
+    }
+
+    // C. Detect duration from files in Media Library
+    $duration = get_post_meta($post_id, 'duration', true);
+    if (empty($duration) && !empty($audio_url)) {
+        $attachment_id = attachment_url_to_postid($audio_url);
+        if ($attachment_id) {
+            $metadata = wp_get_attachment_metadata($attachment_id);
+            if (!empty($metadata['length_formatted'])) {
+                update_post_meta($post_id, 'duration', $metadata['length_formatted']);
+            }
+        }
+    }
+}, 10, 2);
+
+/**
+ * 5. REST API OPTIMIZATION
+ * Ensures audio_url is ALWAYS a URL in the API, never an ID.
+ */
+add_filter('rest_prepare_track', function($response, $post, $request) {
+    $data = $response->get_data();
+
+    // Check 'meta' field (native)
+    if (!empty($data['meta']['audio_url']) && is_numeric($data['meta']['audio_url'])) {
+        $url = wp_get_attachment_url((int)$data['meta']['audio_url']);
+        if ($url) $data['meta']['audio_url'] = $url;
+    }
+
+    // Check 'acf' field (if still using ACF)
+    if (!empty($data['acf']['audio_url']) && is_numeric($data['acf']['audio_url'])) {
+        $url = wp_get_attachment_url((int)$data['acf']['audio_url']);
+        if ($url) $data['acf']['audio_url'] = $url;
+    }
+
+    $response->set_data($data);
+    return $response;
+}, 10, 3);
 ```
 
 ---

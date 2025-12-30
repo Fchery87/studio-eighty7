@@ -1,14 +1,19 @@
-import React, { useState, useEffect } from 'react';
-import { fetchTracks } from '../services/wordpressService';
-import { Play, Pause, SkipBack, SkipForward, Volume2 } from 'lucide-react';
+import React, { useState, useEffect, useRef } from 'react';
+import { fetchTracks } from '@/services/wordpressService';
+import type { Track } from '@/types';
+import { Play, Pause, SkipBack, SkipForward, Volume2, VolumeX } from 'lucide-react';
 
 const TrackPlayer: React.FC = () => {
-  const [tracks, setTracks] = useState<any[]>([]);
+  const [tracks, setTracks] = useState<Track[]>([]);
   const [loading, setLoading] = useState(true);
   const [currentTrack, setCurrentTrack] = useState(0);
   const [isPlaying, setIsPlaying] = useState(false);
-  const [progress, setProgress] = useState(0);
+  const [currentTime, setCurrentTime] = useState(0);
+  const [duration, setDuration] = useState(0);
+  const [volume, setVolume] = useState(0.8);
+  const [isMuted, setIsMuted] = useState(false);
 
+  const audioRef = useRef<HTMLAudioElement>(null);
   const track = tracks[currentTrack];
 
   useEffect(() => {
@@ -26,24 +31,81 @@ const TrackPlayer: React.FC = () => {
     }
   };
 
+  // Sync isPlaying with audio element
+  useEffect(() => {
+    if (!audioRef.current) return;
+    
+    if (isPlaying) {
+      audioRef.current.play().catch(e => console.log('Playback blocked or failed:', e));
+    } else {
+      audioRef.current.pause();
+    }
+  }, [isPlaying, currentTrack]);
+
+  // Sync volume with audio element
+  useEffect(() => {
+    if (!audioRef.current) return;
+    audioRef.current.volume = isMuted ? 0 : volume;
+  }, [volume, isMuted]);
+
   const togglePlay = () => {
+    if (!track?.audioUrl) return;
     setIsPlaying(!isPlaying);
   };
 
   const nextTrack = () => {
+    if (!tracks.length) return;
     setCurrentTrack((prev) => (prev + 1) % tracks.length);
-    setProgress(0);
+    setCurrentTime(0);
   };
 
   const prevTrack = () => {
+    if (!tracks.length) return;
     setCurrentTrack((prev) => (prev - 1 + tracks.length) % tracks.length);
-    setProgress(0);
+    setCurrentTime(0);
   };
 
   const selectTrack = (index: number) => {
     setCurrentTrack(index);
-    setProgress(0);
-    setIsPlaying(true);
+    setCurrentTime(0);
+    setIsPlaying(Boolean(tracks[index]?.audioUrl));
+  };
+
+  const handleTimeUpdate = () => {
+    if (audioRef.current) {
+      setCurrentTime(audioRef.current.currentTime);
+    }
+  };
+
+  const handleLoadedMetadata = () => {
+    if (audioRef.current) {
+      setDuration(audioRef.current.duration);
+    }
+  };
+
+  const handleSeek = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const time = parseFloat(e.target.value);
+    setCurrentTime(time);
+    if (audioRef.current) {
+      audioRef.current.currentTime = time;
+    }
+  };
+
+  const handleVolumeChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const vol = parseFloat(e.target.value);
+    setVolume(vol);
+    if (vol > 0) setIsMuted(false);
+  };
+
+  const toggleMute = () => {
+    setIsMuted(!isMuted);
+  };
+
+  const formatTime = (seconds: number) => {
+    if (isNaN(seconds)) return '0:00';
+    const mins = Math.floor(seconds / 60);
+    const secs = Math.floor(seconds % 60);
+    return `${mins}:${secs.toString().padStart(2, '0')}`;
   };
 
   if (loading) {
@@ -58,6 +120,13 @@ const TrackPlayer: React.FC = () => {
 
   return (
     <section id="music" className="py-24 bg-samurai-black relative">
+      <audio
+        ref={audioRef}
+        src={track?.audioUrl || undefined}
+        onTimeUpdate={handleTimeUpdate}
+        onLoadedMetadata={handleLoadedMetadata}
+        onEnded={nextTrack}
+      />
       <div className="max-w-7xl mx-auto px-6">
         <div className="mb-16">
           <h2 className="text-sm font-bold tracking-[0.3em] text-samurai-red mb-2 uppercase">Featured Tracks</h2>
@@ -138,15 +207,24 @@ const TrackPlayer: React.FC = () => {
 
             {/* Progress Bar */}
             <div className="mb-6">
-              <div className="h-1 bg-white/10 rounded-full overflow-hidden mb-2">
-                <div 
-                  className="h-full bg-samurai-red transition-all duration-300"
-                  style={{ width: `${progress}%` }}
-                ></div>
-              </div>
-              <div className="flex justify-between text-xs text-gray-500 font-mono">
-                <span>0:00</span>
-                <span>{track?.duration}</span>
+              <input
+                type="range"
+                min="0"
+                max={duration || 0}
+                value={currentTime}
+                onChange={handleSeek}
+                className="w-full h-1 bg-white/10 rounded-full appearance-none cursor-pointer accent-samurai-red"
+                style={{
+                  background: `linear-gradient(to right, #FF0000 ${
+                    (currentTime / (duration || 1)) * 100
+                  }%, rgba(255,255,255,0.1) ${
+                    (currentTime / (duration || 1)) * 100
+                  }%)`,
+                }}
+              />
+              <div className="flex justify-between text-xs text-gray-500 font-mono mt-2">
+                <span>{formatTime(currentTime)}</span>
+                <span>{formatTime(duration) !== '0:00' ? formatTime(duration) : track?.duration}</span>
               </div>
             </div>
 
@@ -170,10 +248,25 @@ const TrackPlayer: React.FC = () => {
 
             {/* Volume */}
             <div className="flex items-center justify-center gap-3 mt-6">
-              <Volume2 size={20} className="text-gray-500" />
-              <div className="w-32 h-1 bg-white/10 rounded-full">
-                <div className="w-3/4 h-full bg-gray-500 rounded-full"></div>
-              </div>
+              <button onClick={toggleMute} className="text-gray-500 hover:text-white transition-colors">
+                {isMuted || volume === 0 ? <VolumeX size={20} /> : <Volume2 size={20} />}
+              </button>
+              <input
+                type="range"
+                min="0"
+                max="1"
+                step="0.01"
+                value={isMuted ? 0 : volume}
+                onChange={handleVolumeChange}
+                className="w-32 h-1 bg-white/10 rounded-full appearance-none cursor-pointer accent-gray-500"
+                style={{
+                  background: `linear-gradient(to right, #6B7280 ${
+                    (isMuted ? 0 : volume) * 100
+                  }%, rgba(255,255,255,0.1) ${
+                    (isMuted ? 0 : volume) * 100
+                  }%)`,
+                }}
+              />
             </div>
           </div>
         </div>
