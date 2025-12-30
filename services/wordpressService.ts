@@ -51,7 +51,7 @@ export interface WPTrack extends WPPost {
     duration?: string;
     genre?: string;
     audio_url?: WPMediaRef;
-    album?: number;
+    album_id?: number;
   };
   meta?: Record<string, unknown>;
 }
@@ -197,7 +197,7 @@ const resolveAudioUrl = async (
 export const fetchTracks = async (): Promise<any[]> => {
   try {
     const response = await fetch(
-      `${WP_API_URL}?rest_route=/wp/v2/track&_embed&per_page=20`
+      `${WP_API_URL}?rest_route=/wp/v2/track&_embed&per_page=20&orderby=menu_order&order=asc`
     );
 
     if (response.status === 404) {
@@ -277,7 +277,8 @@ export const fetchServices = async (): Promise<any[]> => {
       id: service.id.toString(),
       title: service.title.rendered,
       description: service.excerpt.rendered.replace(/<[^>]*>/g, ''),
-      icon: ['music', 'sliders', 'headphones'][index % 3],
+      icon: service.acf?.icon || ['music', 'sliders', 'headphones'][index % 3],
+      price: service.acf?.price || '',
     }));
   } catch (error) {
     debugLog('Error fetching services - using mock data');
