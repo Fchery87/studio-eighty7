@@ -212,24 +212,40 @@ export const fetchTracks = async (): Promise<any[]> => {
     // Process tracks and resolve audio URLs
     const tracksWithUrls = await Promise.all(
       data.map(async (track: WPTrack) => {
+        // Helper to safely get ACF field (ACF can return empty array instead of object)
+        const getAcf = (key: string) => {
+          if (track.acf && !Array.isArray(track.acf) && track.acf[key]) {
+            return track.acf[key];
+          }
+          return undefined;
+        };
+
         const contentAudioUrl = extractAudioUrlFromContent(
           track.content?.rendered
         );
-        const rawAudioUrl = track.acf?.audio_url ?? track.meta?.audio_url ?? '';
+        const rawAudioUrl = getAcf('audio_url') ?? track.meta?.audio_url ?? '';
         const audioUrl =
           contentAudioUrl ||
           (rawAudioUrl ? await resolveAudioUrl(rawAudioUrl as WPMediaRef) : '');
+
+        // Get duration from meta first (native), then ACF, then fallback
+        const duration =
+          (track.meta?.duration as string) ||
+          (getAcf('duration') as string) ||
+          '3:00';
+
         return {
           id: track.id.toString(),
           title: track.title.rendered,
           artist:
-            track.acf?.artist || (track.meta?.artist as string) || 'Tek-Domain',
-          duration:
-            (track.meta?.duration as string) || track.acf?.duration || '3:00',
+            (getAcf('artist') as string) ||
+            (track.meta?.artist as string) ||
+            'Tek-Domain',
+          duration,
           cover:
             track._embedded?.['wp:featuredmedia']?.[0]?.source_url ||
             '/placeholder.svg',
-          genre: track.acf?.genre || 'Hip-Hop',
+          genre: (getAcf('genre') as string) || 'Hip-Hop',
           audioUrl,
         };
       })
