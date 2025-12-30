@@ -32,6 +32,23 @@ const TrackPlayer: React.FC = () => {
     }
   };
 
+  // Preload all track durations in the background
+  useEffect(() => {
+    if (tracks.length === 0) return;
+    
+    tracks.forEach((t) => {
+      if (!t.audioUrl || trackDurations[t.id]) return;
+      
+      const audio = new Audio();
+      audio.preload = 'metadata';
+      audio.src = t.audioUrl;
+      audio.onloadedmetadata = () => {
+        const formatted = formatTime(audio.duration);
+        setTrackDurations(prev => ({ ...prev, [t.id]: formatted }));
+      };
+    });
+  }, [tracks]);
+
   // Sync isPlaying with audio element
   useEffect(() => {
     if (!audioRef.current) return;
