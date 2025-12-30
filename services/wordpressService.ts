@@ -7,9 +7,9 @@ import {
 
 // Use proxy in development to avoid CORS issues
 const isDev = import.meta.env.DEV;
-const WP_API_URL = isDev
-  ? '/wp-api'
-  : 'https://studioeighty7.com/wp-json/wp/v2';
+// Use the "Universal" routing format since Hostinger servers sometimes block the standard /wp-json path
+const WP_API_BASE = 'https://studioeighty7.com/index.php?rest_route=/wp/v2';
+const WP_API_URL = isDev ? '/wp-api' : WP_API_BASE;
 
 // Quiet logging - only log in development when DEBUG is enabled
 const debugLog = (...args: any[]) => {
@@ -57,7 +57,10 @@ export interface WPTrack extends WPPost {
 // Fetch albums from WordPress - falls back to mock data on error
 export const fetchAlbums = async (): Promise<any[]> => {
   try {
-    const response = await fetch(`${WP_API_URL}/album?_embed`);
+    const url = isDev
+      ? `${WP_API_URL}/album?_embed`
+      : `${WP_API_URL}/album&_embed`;
+    const response = await fetch(url);
 
     if (response.status === 404) {
       debugLog('Album endpoints not found - using mock data');
@@ -91,7 +94,10 @@ export const fetchAlbums = async (): Promise<any[]> => {
 // Fetch tracks from WordPress - falls back to mock data on error
 export const fetchTracks = async (): Promise<any[]> => {
   try {
-    const response = await fetch(`${WP_API_URL}/track?_embed&per_page=20`);
+    const url = isDev
+      ? `${WP_API_URL}/track?_embed&per_page=20`
+      : `${WP_API_URL}/track&_embed&per_page=20`;
+    const response = await fetch(url);
 
     if (response.status === 404) {
       debugLog('Track endpoints not found - using mock data');
@@ -122,7 +128,10 @@ export const fetchTracks = async (): Promise<any[]> => {
 // Fetch services from WordPress - falls back to mock data on error
 export const fetchServices = async (): Promise<any[]> => {
   try {
-    const response = await fetch(`${WP_API_URL}/service?per_page=10`);
+    const url = isDev
+      ? `${WP_API_URL}/service?per_page=10`
+      : `${WP_API_URL}/service&per_page=10`;
+    const response = await fetch(url);
 
     if (response.status === 404) {
       debugLog('Service endpoints not found - using mock data');

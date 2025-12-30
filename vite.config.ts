@@ -77,12 +77,12 @@ export default defineConfig({
           });
         },
       },
-      // Proxy WordPress API calls to avoid CORS issues
+      // Proxy WordPress API calls using the compatible rest_route format
       '/wp-api': {
-        target: 'https://studioeighty7.com/wp-json/wp/v2',
+        target: 'https://studioeighty7.com/index.php',
         changeOrigin: true,
         secure: true,
-        rewrite: (path) => path.replace(/^\/wp-api/, ''),
+        rewrite: (path) => path.replace(/^\/wp-api/, '?rest_route=/wp/v2'),
         configure: (proxy, _options) => {
           proxy.on('error', (err, _req, _res) => {
             // Silently handle WordPress API errors - app will use mock data
