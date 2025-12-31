@@ -1,5 +1,5 @@
 import React from 'react';
-import { Award, Music, Zap } from 'lucide-react';
+import { Headphones, Music, Star, Zap } from 'lucide-react';
 
 const About: React.FC = () => {
   return (
@@ -54,9 +54,9 @@ const About: React.FC = () => {
             {/* Floating Stats Card */}
             <div className="absolute -bottom-8 -left-8 bg-samurai-red p-6 border border-white/10">
               <div className="flex items-center gap-4">
-                <Award className="text-white" size={32} />
+                <Headphones className="text-white" size={32} />
                 <div>
-                  <div className="text-sm text-gray-200 uppercase tracking-wider">Award-Winning</div>
+                  <div className="text-sm text-gray-200 uppercase tracking-wider">Signature Sound</div>
                   <div className="font-display text-2xl font-bold text-white">Production</div>
                 </div>
               </div>
@@ -91,7 +91,7 @@ const About: React.FC = () => {
 
           <div className="flex items-start gap-4">
             <div className="p-3 bg-samurai-red/10 rounded-lg">
-              <Award className="text-samurai-red" size={24} />
+              <Star className="text-samurai-red" size={24} />
             </div>
             <div>
               <h4 className="font-display text-xl text-white mb-2 uppercase">Proven Results</h4>
