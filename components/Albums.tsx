@@ -23,7 +23,7 @@ const Albums: React.FC = () => {
 
   if (loading) {
     return (
-      <section id="albums" className="py-24 bg-samurai-black relative">
+      <section id="records" className="py-24 bg-samurai-black relative">
         <div className="max-w-7xl mx-auto px-6 text-center">
           <div className="text-gray-500 animate-pulse">Loading albums...</div>
         </div>
@@ -32,7 +32,7 @@ const Albums: React.FC = () => {
   }
 
   return (
-    <section id="albums" className="py-24 bg-samurai-black relative">
+    <section id="records" className="py-24 bg-samurai-black relative">
       <div className="max-w-7xl mx-auto px-6">
         <div className="mb-16 text-center">
           <h2 className="text-sm font-bold tracking-[0.3em] text-samurai-red mb-2 uppercase">The Collection</h2>

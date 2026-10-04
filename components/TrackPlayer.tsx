@@ -33,7 +33,7 @@ const TrackPlayer: React.FC = () => {
 
   if (loading) {
     return (
-      <section id="music" className="py-24 bg-samurai-black relative">
+      <section id="listen" className="py-24 bg-samurai-black relative">
         <div className="max-w-7xl mx-auto px-6 text-center">
           <div className="text-gray-500 animate-pulse">Loading tracks...</div>
         </div>
@@ -42,7 +42,7 @@ const TrackPlayer: React.FC = () => {
   }
 
   return (
-    <section id="music" className="py-24 bg-samurai-black relative">
+    <section id="listen" className="py-24 bg-samurai-black relative">
       <div className="max-w-7xl mx-auto px-6">
         <div className="mb-16">
           <h2 className="text-sm font-bold tracking-[0.3em] text-samurai-red mb-2 uppercase">Featured Tracks</h2>

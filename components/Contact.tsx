@@ -131,7 +131,7 @@ const Contact: React.FC = () => {
   const isFormValid = formData.name.length >= 2 && formData.email.includes('@') && formData.message.length >= 10;
 
   return (
-    <section id="contact" className="py-24 bg-samurai-black relative">
+    <section id="book" className="py-24 bg-samurai-black relative">
       <div className="max-w-7xl mx-auto px-6">
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-16">
           

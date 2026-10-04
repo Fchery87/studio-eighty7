@@ -201,7 +201,7 @@ const AiOracle: React.FC = () => {
   };
 
   return (
-    <section id="oracle" className="py-24 bg-[#080808] border-t border-white/5">
+    <section id="write" className="py-24 bg-[#080808] border-t border-white/5">
       <div className="max-w-4xl mx-auto px-6 text-center">
         <div className="inline-flex items-center gap-2 px-3 py-1 border border-samurai-red/30 rounded-full bg-samurai-red/10 mb-6">
           <Sparkles size={14} className="text-samurai-red" />

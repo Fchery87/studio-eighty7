@@ -3,7 +3,7 @@ import { Headphones, Music, Star, Zap } from 'lucide-react';
 
 const About: React.FC = () => {
   return (
-    <section id="about" className="py-24 bg-samurai-black relative">
+    <section id="studio" className="py-24 bg-samurai-black relative">
       <div className="max-w-7xl mx-auto px-6">
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-16 items-center">
           

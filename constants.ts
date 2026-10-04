@@ -1,11 +1,13 @@
-import { NavItem, Stat, Genre } from "./types";
+import { Stat, Genre } from "./types";
 
-export const NAV_ITEMS: NavItem[] = [
-  { label: 'MUSIC', href: '#music' },
-  { label: 'ALBUMS', href: '#albums' },
-  { label: 'ABOUT', href: '#about' },
-  { label: 'CONTACT', href: '#contact' },
-];
+export const SECTIONS = [
+  { id: 'listen', label: 'Listen' },
+  { id: 'services', label: 'Services' },
+  { id: 'records', label: 'Records' },
+  { id: 'studio', label: 'Studio' },
+  { id: 'write', label: 'Hook lab' },
+  { id: 'book', label: 'Book' },
+] as const;
 
 export const STATS: Stat[] = [
   { label: 'Tracks Produced', value: '870+' },

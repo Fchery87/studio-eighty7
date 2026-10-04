@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Menu, X } from 'lucide-react';
-import { NAV_ITEMS } from '../constants';
+import { SECTIONS } from '../constants';
 
 const Navbar: React.FC = () => {
   const [scrolled, setScrolled] = useState(false);
@@ -25,10 +25,10 @@ const Navbar: React.FC = () => {
 
         {/* Desktop Nav */}
         <div className="hidden md:flex items-center gap-8">
-          {NAV_ITEMS.map((item) => (
+          {SECTIONS.map((item) => (
             <a 
-              key={item.label} 
-              href={item.href}
+              key={item.id} 
+              href={`#${item.id}`}
               className="text-sm font-semibold tracking-widest text-gray-400 hover:text-white transition-colors uppercase relative group"
             >
               {item.label}
@@ -36,7 +36,7 @@ const Navbar: React.FC = () => {
             </a>
           ))}
           <a 
-            href="#contact"
+            href="#book"
             className="relative group px-6 py-2 overflow-hidden"
           >
             <span className="absolute inset-0 w-full h-full bg-samurai-gray transform -skew-x-12 group-hover:bg-samurai-red transition-colors duration-300 border border-gray-700 group-hover:border-samurai-red"></span>
@@ -53,10 +53,10 @@ const Navbar: React.FC = () => {
       {/* Mobile Menu */}
       {mobileOpen && (
         <div className="md:hidden absolute top-full left-0 w-full bg-samurai-black border-t border-gray-800 p-6 flex flex-col gap-4">
-          {NAV_ITEMS.map((item) => (
+          {SECTIONS.map((item) => (
             <a 
-              key={item.label} 
-              href={item.href}
+              key={item.id} 
+              href={`#${item.id}`}
               className="text-xl font-display text-white hover:text-samurai-red uppercase"
               onClick={() => setMobileOpen(false)}
             >
@@ -64,7 +64,7 @@ const Navbar: React.FC = () => {
             </a>
           ))}
           <a 
-            href="#contact"
+            href="#book"
             className="text-xl font-display text-samurai-red uppercase"
             onClick={() => setMobileOpen(false)}
           >

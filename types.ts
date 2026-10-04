@@ -35,11 +35,6 @@ export interface Track {
   audioUrl: string;
 }
 
-export interface NavItem {
-  label: string;
-  href: string;
-}
-
 export enum AiState {
   IDLE = 'IDLE',
   LOADING = 'LOADING',
