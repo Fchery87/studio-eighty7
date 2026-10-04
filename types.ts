@@ -2,7 +2,6 @@ export interface Service {
   id: string;
   title: string;
   description: string;
-  icon: string;
 }
 
 export interface Stat {
@@ -10,31 +9,21 @@ export interface Stat {
   value: string;
 }
 
-export interface NavItem {
-  label: string;
-  href: string;
-}
-
-export interface Genre {
-  name: string;
-  color: string;
-}
-
 export interface Album {
   id: string;
   title: string;
-  subtitle: string;
   year: string;
   cover: string;
   tracks: number;
-  description: string;
+  spotifyUrl: string | null;
+  appleMusicUrl: string | null;
 }
 
 export interface Track {
   id: string;
   title: string;
   artist: string;
-  duration: string;
+  duration: string | null;
   cover: string;
   genre: string;
   audioUrl: string;
@@ -46,3 +35,13 @@ export enum AiState {
   SUCCESS = 'SUCCESS',
   ERROR = 'ERROR'
 }
+
+export interface Section {
+  id: string;
+  label: string;
+}
+
+export type Remote<T> =
+  | { status: 'loading' }
+  | { status: 'ready'; data: T }
+  | { status: 'error' };

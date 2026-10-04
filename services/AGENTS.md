@@ -1,12 +1,12 @@
 # Services - Studio Eighty7
 
 ## Package Identity
-API integration layer for Studio Eighty7 application. Provides TypeScript interfaces and async functions for external APIs (WordPress CMS and Google Gemini AI).
+API integration layer for Studio Eighty7. Provides TypeScript interfaces and async functions for WordPress and the server's Hook lab endpoint.
 
 ## Setup & Run
 - No separate setup (uses project dev server)
 - Services are imported directly by components
-- Environment variable required for Gemini: `GEMINI_API_KEY` in `.env.local`
+- AI keys live in `server/.env` (server only): `DEEPSEEK_API_KEY` and/or `GEMINI_API_KEY`. The Hook lab tries DeepSeek first
 
 ## Patterns & Conventions
 
@@ -14,7 +14,7 @@ API integration layer for Studio Eighty7 application. Provides TypeScript interf
 - Each service file exports:
   1. TypeScript interfaces for API response types
   2. Async functions that fetch/process data
-  3. Error handling with console logging
+  3. Errors thrown to the caller (components show them through `useRemote` + `LoadError`)
 - File naming: `wordpressService.ts` (lowercase service + Service.ts)
 
 ### Service Function Pattern
@@ -24,39 +24,32 @@ export interface ApiType {
   field: string;
 }
 
-// Fetch function
+// Fetch function: throw on failure, never substitute data
 export const fetchData = async (): Promise<ReturnType[]> => {
-  try {
-    const response = await fetch(`${API_URL}/endpoint`);
-    if (!response.ok) throw new Error('Failed to fetch');
-    
-    const data = await response.json();
-    
-    // Map/transform data
-    return data.map((item: ApiType) => ({
-      id: item.id.toString(),
-      title: item.title.rendered,
-      // ...other fields
-    }));
-  } catch (error) {
-    console.error('Error fetching data:', error);
-    return [];  // Return empty array on error (fail-soft)
-  }
+  const response = await fetch(`${API_URL}/endpoint`);
+  if (!response.ok) throw new Error(`Failed to fetch data: HTTP ${response.status}`);
+
+  const data: ApiType[] = await response.json();
+  return data.map((item) => ({
+    id: item.id.toString(),
+    title: decodeHtml(item.title.rendered),
+  }));
 };
 ```
 
 ### ✅ DO
 - Return `Promise<ReturnType[]>` from fetch functions
-- Use `try/catch` blocks for error handling
-- Return empty array `[]` on errors (fail-soft pattern, see `wordpressService.ts:60`)
-- Log errors with `console.error()`
+- Throw on a failed request and include the HTTP status in the message
+- Load data in components with `useRemote(fetcher)` (`components/useRemote.ts`), which gives a `Remote<T>` (`loading` / `ready` / `error`) and a `retry`
+- Render `<LoadError what="…" onRetry={retry} />` for the error state
+- Decode WordPress HTML entities with `decodeHtml` at the boundary
 - Transform data to consistent format before returning
 - Use `response.ok` check before `response.json()`
 - Map WordPress ACF fields to simplified types
-- Use environment variables for API keys (via `process.env.API_KEY`)
+- Keep API keys on the server (`server/.env`); the frontend calls `/api/*`
 
 ### ❌ DON'T
-- Throw errors that crash the app (return empty arrays instead)
+- Substitute mock or empty data when a request fails. Visitors would see invented content with no sign anything broke
 - Expose raw API responses to components
 - Hardcode API URLs (use constants)
 - Mix API logic in components (keep in services)
@@ -64,26 +57,26 @@ export const fetchData = async (): Promise<ReturnType[]> => {
 
 ### Service Examples
 - **WordPress API fetcher**: `services/wordpressService.ts` (fetches albums, tracks, services)
-- **AI API integration**: `services/geminiService.ts` (uses Google GenAI SDK)
-- **Error handling pattern**: `wordpressService.ts:58-61` (try/catch with fallback)
-- **Data transformation**: `wordpressService.ts:47-57` (map WP response to app types)
+- **AI API integration**: `services/hookService.ts` (calls the server's `/api/generate`, which picks DeepSeek or Gemini in `server/hookProviders.ts`)
+- **Error handling pattern**: `components/useRemote.ts` and `components/Services.tsx`
+- **Data transformation**: `fetchServices` in `wordpressService.ts`
 
 ## Touch Points / Key Files
 - WordPress API URL constant: `wordpressService.ts:1`
 - WordPress types: `wordpressService.ts:3-37` (WPPost, WPAlbum, WPTrack interfaces)
-- Gemini AI client: `geminiService.ts:1` (GoogleGenAI import)
+- Hook providers (DeepSeek, Gemini): `server/hookProviders.ts`
 - Environment variable config: `vite.config.ts:14-15` (API key injection)
 
 ## JIT Index Hints
 - Find service function: `rg -n "export const (fetch|generate)" services/`
 - Find TypeScript interfaces: `rg -n "export interface" services/`
 - Find API calls: `rg -n "await fetch" services/`
-- Find error handling: `rg -n "catch.*error" services/`
+- Find error states: `rg -n "LoadError|useRemote" components/ App.tsx`
 
 ## Common Gotchas
 - WordPress API URL is public (no auth needed)
-- Gemini API requires valid `GEMINI_API_KEY` in `.env.local`
-- Use `process.env.API_KEY` (not `process.env.GEMINI_API_KEY`) in code
+- Gemini needs `GEMINI_API_KEY` in `server/.env`. The frontend never reads it
+- The dev proxy (`/wp-api` in `vite.config.ts`) strips cookies; studioeighty7.com rejects oversized localhost cookie headers with a 400
 - WordPress fields with `?` are optional (check existence before use)
 - `_embedded` field in WP responses contains featured media
 - Use `item.field?.toString()` to safely convert optional types

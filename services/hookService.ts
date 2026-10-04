@@ -1,11 +1,11 @@
 /**
- * Gemini Service - Calls backend proxy for secure API key handling
- * The backend proxy (server/index.ts) handles the Gemini API key securely
+ * Hook lab client. The backend (server/index.ts) holds the AI keys and picks the provider.
  */
 
 interface GenerateResponse {
   success: boolean;
   data: string;
+  provider?: string;
   error?: string;
   message?: string;
 }
@@ -20,7 +20,14 @@ const logError = (context: string, error: unknown): void => {
   }
 };
 
-export const generateCreativeIdea = async (topic: string): Promise<string> => {
+import type { HookRequest } from '@/server/hookOptions';
+
+export interface Hook {
+  text: string;
+  provider: string;
+}
+
+export const generateHook = async (request: HookRequest): Promise<Hook> => {
   // Use proxied API path - Vite proxy handles routing to backend in development
   // In production, the backend should be configured to serve the frontend and handle API routes
   const apiUrl = '/api/generate';
@@ -32,7 +39,7 @@ export const generateCreativeIdea = async (topic: string): Promise<string> => {
         'Content-Type': 'application/json',
         'Accept': 'application/json',
       },
-      body: JSON.stringify({ topic }),
+      body: JSON.stringify(request),
     });
 
     if (!response.ok) {
@@ -59,9 +66,9 @@ export const generateCreativeIdea = async (topic: string): Promise<string> => {
       throw new Error(data.message || 'Invalid response from server');
     }
 
-    return data.data;
+    return { text: data.data, provider: data.provider ?? 'AI' };
   } catch (error) {
-    logError('Gemini API Error', error);
+    logError('Hook API Error', error);
 
     // Don't expose internal errors to users
     if (error instanceof Error) {

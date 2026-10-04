@@ -2,22 +2,17 @@ import express, { Request, Response, NextFunction } from 'express';
 import cors from 'cors';
 import helmet from 'helmet';
 import rateLimit from 'express-rate-limit';
-import { GoogleGenAI } from '@google/genai';
+import { configuredProviders, ProviderError } from './hookProviders.js';
+import { hookMessages } from './hookPrompt.js';
+import { HOOK_BARS, HOOK_GENRE_IDS, type HookBars } from './hookOptions.js';
 import { z } from 'zod';
 import dotenv from 'dotenv';
 
-// Load environment variables
-dotenv.config();
+// server/.env wins over the shell, so a GEMINI_API_KEY exported for another tool cannot leak in
+dotenv.config({ override: true });
 
-// Validate required environment variables
-const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
-const PORT = process.env.PORT || 3001;
+const PORT = process.env.PORT || 8787;
 const FRONTEND_URL = process.env.FRONTEND_URL || 'http://localhost:3000';
-
-if (!GEMINI_API_KEY) {
-  console.error('FATAL: GEMINI_API_KEY environment variable is not set');
-  process.exit(1);
-}
 
 // Initialize Express app
 const app = express();
@@ -108,6 +103,13 @@ const GenerateRequestSchema = z.object({
       // Basic sanitization: remove potentially dangerous characters
       return val.replace(/[<>]/g, '');
     }),
+  genre: z.enum(HOOK_GENRE_IDS).default('any'),
+  bars: z
+    .number()
+    .refine((value): value is HookBars => (HOOK_BARS as readonly number[]).includes(value), {
+      message: `Bars must be one of ${HOOK_BARS.join(', ')}`,
+    })
+    .default(4),
 });
 
 // Contact form validation schema
@@ -124,7 +126,7 @@ const ContactRequestSchema = z.object({
         .replace(/[\x00-\x1F\x7F]/g, '') // Remove control characters
         .trim();
     })
-    .refine((val) => /^[a-zA-Z0-9\s\-\.'’]+$/.test(val), {
+    .refine((val) => /^[\p{L}\p{M}0-9\s\-\.'’]+$/u.test(val), {
       message: 'Name contains invalid characters',
     }),
   email: z
@@ -153,10 +155,13 @@ const ContactRequestSchema = z.object({
         .replace(/[\x00-\x1F\x7F]/g, '') // Remove control characters
         .trim();
     }),
+  service: z.string().max(100).optional(),
 });
 
-// Initialize Google Gemini AI
-const ai = new GoogleGenAI({ apiKey: GEMINI_API_KEY });
+const providers = configuredProviders(process.env);
+if (providers.length === 0) {
+  console.warn('No DEEPSEEK_API_KEY or GEMINI_API_KEY set; the hook lab will answer 503.');
+}
 
 // Health check endpoint (no rate limiting)
 app.get('/health', (req: Request, res: Response) => {
@@ -168,71 +173,55 @@ app.get('/health', (req: Request, res: Response) => {
 });
 
 // Generate endpoint with rate limiting and validation
+// Models sometimes add quotes, labels or blank lines despite the prompt
+const cleanHook = (raw: string, bars: number) =>
+  raw
+    .split('\n')
+    // Double quotes only: a trailing apostrophe is slang ("rollin'"), not a quote
+    .map((line) => line.trim().replace(/^\d+[.):]\s*/, '').replace(/^["“”]+|["“”]+$/g, '').trim())
+    .filter((line) => line && !/^(hook|chorus|title)\s*:?$/i.test(line))
+    .slice(0, bars)
+    .join('\n');
+
 app.post('/api/generate', generateRateLimiter, async (req: Request, res: Response) => {
-  try {
-    // Validate request body
-    const validatedData = GenerateRequestSchema.parse(req.body);
-
-    const { topic } = validatedData;
-
-    console.log(`Generating creative idea for topic: "${topic}"`);
-
-    // Call Google Gemini API
-    const response = await ai.models.generateContent({
-      model: 'gemini-3-flash-preview',
-      contents: `You are a legendary music producer and lyricist for Studio Eighty7. 
-      The user needs a song concept, title, or a one-line lyric hook for: "${topic}".
-      Provide a punchy, moody, or hard-hitting creative text snippet.
-      Keep it under 20 words. Focus on rhythm, emotion, and grit.`,
+  const parsed = GenerateRequestSchema.safeParse(req.body);
+  if (!parsed.success) {
+    res.status(400).json({
+      error: 'Validation error',
+      message: parsed.error.issues[0]?.message || 'Invalid request body',
     });
-
-    const generatedText = response.text || "Listen to the silence. The beat will drop.";
-
-    console.log(`Generated idea: "${generatedText}"`);
-
-    // Return successful response
-    res.status(200).json({
-      success: true,
-      data: generatedText,
-    });
-
-  } catch (error) {
-    console.error('Error generating creative idea:', error);
-
-    // Handle Zod validation errors
-    if (error instanceof z.ZodError) {
-      res.status(400).json({
-        error: 'Validation error',
-        message: error.issues[0]?.message || 'Invalid request body',
-      });
-      return;
-    }
-
-    // Handle Gemini API errors
-    if (error && typeof error === 'object' && 'status' in error) {
-      const status = (error as any).status;
-      if (status === 401 || status === 403) {
-        res.status(500).json({
-          error: 'Service unavailable',
-          message: 'The signal is lost. Check your frequency.',
-        });
-        return;
-      }
-      if (status === 429) {
-        res.status(429).json({
-          error: 'Rate limit exceeded',
-          message: 'Too many requests. Please try again later.',
-        });
-        return;
-      }
-    }
-
-    // Generic error response
-    res.status(500).json({
-      error: 'Internal server error',
-      message: 'The signal is lost. Check your frequency.',
-    });
+    return;
   }
+
+  if (providers.length === 0) {
+    res.status(503).json({ error: 'Service unavailable', message: 'The hook lab is not set up yet.' });
+    return;
+  }
+
+  const messages = hookMessages(parsed.data);
+  let rateLimited = false;
+  for (const provider of providers) {
+    try {
+      const hook = cleanHook(await provider.generate(messages), parsed.data.bars);
+      if (!hook) throw new ProviderError(provider.name, 502, 'empty response');
+      res.status(200).json({ success: true, data: hook, provider: provider.name });
+      return;
+    } catch (error) {
+      console.error(`[hook] ${provider.name} failed:`, error instanceof Error ? error.message : error);
+      if (error instanceof ProviderError) {
+        if (error.status === 429) rateLimited = true;
+        if ([400, 401, 402, 403].includes(error.status)) {
+          console.error(`[hook] Check ${provider.name === 'Gemini' ? 'GEMINI_API_KEY' : 'DEEPSEEK_API_KEY'} in server/.env and that the account has credit.`);
+        }
+      }
+    }
+  }
+
+  if (rateLimited) {
+    res.status(429).json({ error: 'Rate limit exceeded', message: 'Too many requests. Please try again later.' });
+    return;
+  }
+  res.status(502).json({ error: 'Upstream error', message: 'No hook writer is available right now.' });
 });
 
 // Contact form endpoint with rate limiting and validation
@@ -241,7 +230,7 @@ app.post('/api/contact', contactRateLimiter, async (req: Request, res: Response)
     // Validate request body
     const validatedData = ContactRequestSchema.parse(req.body);
 
-    const { name, email, message } = validatedData;
+    const { name, email, message, service } = validatedData;
 
     // Log submission (without exposing sensitive data)
     console.log(`Contact form submission from: ${email} (${name})`);
@@ -276,6 +265,7 @@ app.post('/api/contact', contactRateLimiter, async (req: Request, res: Response)
       timestamp: new Date().toISOString(),
       from: email,
       name: name,
+      service: service,
       messageLength: message.length,
     });
 
