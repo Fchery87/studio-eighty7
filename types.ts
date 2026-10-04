@@ -9,12 +9,6 @@ export interface Stat {
   value: string;
 }
 
-export interface Genre {
-  name: string;
-  // Fader cap position as a percentage of the track height
-  level: number;
-}
-
 export interface Album {
   id: string;
   title: string;

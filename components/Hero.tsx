@@ -1,21 +1,12 @@
 import React from 'react';
 import { Play, Pause } from 'lucide-react';
-import { GENRES } from '../constants';
 import { usePlayer } from './player/PlayerProvider';
 
-const SEGMENTS = 14;
-const TIMING = [
-  { duration: '1.3s', delay: '0s' },
-  { duration: '1.9s', delay: '-0.4s' },
-  { duration: '1.6s', delay: '-1.1s' },
-  { duration: '2.2s', delay: '-0.7s' },
-  { duration: '1.45s', delay: '-1.5s' },
-];
+const PHOTO = 'https://images.unsplash.com/photo-1598488035139-bdbb2231ce04?auto=format&fit=crop&q=70';
 
 const Hero: React.FC = () => {
   const { tracks, index, status, select, toggle } = usePlayer();
-  const playing = status === 'playing';
-  const latestPlaying = playing && index === 0;
+  const latestPlaying = status === 'playing' && index === 0;
   const canPlay = Boolean(tracks[0]?.audioUrl);
 
   const playLatest = () => {
@@ -24,85 +15,44 @@ const Hero: React.FC = () => {
   };
 
   return (
-    <section className="pt-16 pb-20 md:pt-24 md:pb-28">
-      <div className="mx-auto max-w-[1200px] px-6 grid grid-cols-1 lg:grid-cols-12 gap-12 lg:gap-8 items-end">
-        <div className="lg:col-span-7">
-          <h1 className="display text-hero text-bone">
-            Studio
-            <br />
-            Eighty7
-          </h1>
-          <p className="mt-8 max-w-[34ch] text-lg text-dust">
-            Production, mixing and mastering for hip-hop, trap, R&B, kompa and afro artists.
-          </p>
-          <div className="mt-8 flex flex-wrap gap-3">
-            <button
-              type="button"
-              onClick={playLatest}
-              disabled={!canPlay}
-              className="inline-flex min-w-[11.5rem] items-center justify-center gap-2 rounded-md bg-rec px-6 py-3 font-semibold text-bone disabled:opacity-50"
-            >
-              {latestPlaying ? <Pause size={18} /> : <Play size={18} />}
-              {latestPlaying ? 'Pause' : 'Play the latest'}
-            </button>
-            <a
-              href="#book"
-              className="inline-flex items-center rounded-md border border-bone px-6 py-3 font-semibold text-bone"
-            >
-              Book a session
-            </a>
-          </div>
-        </div>
+    <section className="relative isolate flex min-h-[calc(100svh-64px)] max-h-[860px] items-end overflow-hidden">
+      <img
+        src={`${PHOTO}&w=1600`}
+        srcSet={`${PHOTO}&w=800 800w, ${PHOTO}&w=1600 1600w, ${PHOTO}&w=2400 2400w`}
+        sizes="100vw"
+        alt="Recording studio control room with guitars on the wall"
+        fetchPriority="high"
+        className="absolute inset-0 -z-10 h-full w-full object-cover object-[70%_center]"
+      />
+      {/* Keeps the copy legible over the brightest parts of the photo */}
+      <div
+        aria-hidden="true"
+        className="absolute inset-0 -z-10 bg-gradient-to-t from-walnut from-25% via-walnut/80 via-55% to-walnut/10 md:bg-gradient-to-r md:from-walnut md:from-0% md:via-walnut/70 md:via-45% md:to-transparent"
+      />
 
-        <div className="lg:col-span-5">
-          <ul className="sr-only">
-            {GENRES.map((genre) => (
-              <li key={genre.name}>{genre.name}</li>
-            ))}
-          </ul>
-          <div
-            aria-hidden="true"
-            className="flex justify-between rounded-xl border border-line bg-panel p-6"
+      <div className="mx-auto w-full max-w-[1200px] px-6 pb-16 pt-40 md:pb-24">
+        <h1 className="display max-w-[14ch] text-[clamp(2.75rem,6vw,5.5rem)] leading-[0.95] text-bone">
+          Records made right here.
+        </h1>
+        <p className="mt-6 max-w-[38ch] text-lg text-bone/80">
+          Production, mixing and mastering for hip-hop, trap, R&B, kompa and afro artists.
+        </p>
+        <div className="mt-8 flex flex-wrap gap-3">
+          <button
+            type="button"
+            onClick={playLatest}
+            disabled={!canPlay}
+            className="inline-flex min-w-[11.5rem] items-center justify-center gap-2 rounded-md bg-rec px-6 py-3 font-semibold text-bone disabled:opacity-50"
           >
-            {GENRES.map((genre, i) => (
-              <div key={genre.name} className="flex flex-col items-center gap-3">
-                <div className="flex gap-2 h-44 lg:h-80">
-                  <div className="relative w-3">
-                    <div className="absolute inset-0 flex flex-col gap-[2px]">
-                      {Array.from({ length: SEGMENTS }, (_, s) => (
-                        <span key={s} className="flex-1 rounded-[1px] bg-line" />
-                      ))}
-                    </div>
-                    <div
-                      className="meter-lit absolute inset-0 flex flex-col gap-[2px]"
-                      data-live={playing}
-                      style={
-                        {
-                          '--duration': TIMING[i % TIMING.length].duration,
-                          '--delay': TIMING[i % TIMING.length].delay,
-                        } as React.CSSProperties
-                      }
-                    >
-                      {Array.from({ length: SEGMENTS }, (_, s) => (
-                        <span
-                          key={s}
-                          className={`flex-1 rounded-[1px] ${s < 2 ? 'bg-rec' : 'bg-amber'}`}
-                        />
-                      ))}
-                    </div>
-                  </div>
-                  <div className="relative w-6">
-                    <span className="absolute left-1/2 top-0 bottom-0 w-1 -translate-x-1/2 rounded-full bg-line" />
-                    <span
-                      className="absolute left-0 h-4 w-6 -translate-y-1/2 rounded-sm bg-bone"
-                      style={{ top: `${100 - genre.level}%` }}
-                    />
-                  </div>
-                </div>
-                <span className="data text-xs text-dust">{genre.name}</span>
-              </div>
-            ))}
-          </div>
+            {latestPlaying ? <Pause size={18} /> : <Play size={18} />}
+            {latestPlaying ? 'Pause' : 'Play the latest'}
+          </button>
+          <a
+            href="#book"
+            className="inline-flex items-center rounded-md border border-bone bg-walnut/40 px-6 py-3 font-semibold text-bone backdrop-blur-sm"
+          >
+            Book a session
+          </a>
         </div>
       </div>
     </section>

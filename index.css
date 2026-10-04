@@ -110,29 +110,3 @@
   border-radius: 50%;
   background: var(--color-bone);
 }
-
-/* Lit segments are clipped in whole-segment steps (14 per meter) */
-.meter-lit {
-  clip-path: inset(calc(100% / 14 * 11) 0 0 0);
-}
-
-.meter-lit[data-live="true"] {
-  animation: meter 1.6s steps(14) infinite;
-  animation-delay: var(--delay, 0s);
-  animation-duration: var(--duration, 1.6s);
-}
-
-@keyframes meter {
-  0% { clip-path: inset(calc(100% / 14 * 10) 0 0 0); }
-  20% { clip-path: inset(calc(100% / 14 * 3) 0 0 0); }
-  40% { clip-path: inset(calc(100% / 14 * 8) 0 0 0); }
-  60% { clip-path: inset(calc(100% / 14 * 1) 0 0 0); }
-  80% { clip-path: inset(calc(100% / 14 * 6) 0 0 0); }
-  100% { clip-path: inset(calc(100% / 14 * 10) 0 0 0); }
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .meter-lit[data-live="true"] {
-    animation: none;
-  }
-}

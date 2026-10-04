@@ -50,8 +50,8 @@ const About: React.FC = () => {
         </div>
 
         <img
-          src="https://images.unsplash.com/photo-1598488035139-bdbb2231ce04?w=800&h=1000&fit=crop"
-          alt="Studio Eighty7 recording studio"
+          src="https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?w=800&h=1000&fit=crop&crop=left"
+          alt="Vintage microphone under warm studio lights"
           className="w-full h-auto rounded-xl"
         />
       </div>
