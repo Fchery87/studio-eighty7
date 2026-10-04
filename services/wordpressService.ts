@@ -1,8 +1,3 @@
-import {
-  MOCK_ALBUMS,
-  MOCK_TRACKS,
-  MOCK_SERVICES,
-} from './mockData';
 import type { Album, Service, Track } from '@/types';
 
 // Use proxy in development to avoid CORS issues
@@ -17,11 +12,6 @@ const debugLog = (...args: unknown[]) => {
   if (isDev && localStorage.getItem('DEBUG') === 'true') {
     console.log('[WordPress]', ...args);
   }
-};
-
-// Mock data looks real on screen, so a fallback must never be silent in dev
-const warnFallback = (what: string, error: unknown) => {
-  if (isDev) console.warn(`[WordPress] ${what} failed, showing mock data:`, error);
 };
 
 export interface WPPost {
@@ -64,36 +54,28 @@ const getCover = (post: WPPost) =>
   getString(post, 'album_art') ||
   '/placeholder.svg';
 
-// Fetch albums from WordPress - falls back to mock data on error
+// An album endpoint that does not exist yet means no albums, not an error
 export const fetchAlbums = async (): Promise<Album[]> => {
-  try {
-    const response = await fetch(
-      `${WP_API_URL}?rest_route=/wp/v2/album&_embed`
-    );
+  const response = await fetch(
+    `${WP_API_URL}?rest_route=/wp/v2/album&_embed`
+  );
 
-    if (response.status === 404) {
-      debugLog('Album endpoints not found - using mock data');
-      return MOCK_ALBUMS;
-    }
+  if (response.status === 404) return [];
 
-    if (!response.ok) throw new Error(`Failed to fetch albums: HTTP ${response.status}`);
+  if (!response.ok) throw new Error(`Failed to fetch albums: HTTP ${response.status}`);
 
-    const data: WPPost[] = await response.json();
+  const data: WPPost[] = await response.json();
 
-    return data.map((album) => ({
-      id: album.id.toString(),
-      title: decodeHtml(album.title.rendered),
-      year:
-        getString(album, 'year') || new Date().getFullYear().toString(),
-      cover: getCover(album),
-      tracks: Number(getField(album, 'tracks')) || 0,
-      spotifyUrl: getString(album, 'spotify_url'),
-      appleMusicUrl: getString(album, 'apple_music_url'),
-    }));
-  } catch (error) {
-    warnFallback('Fetching albums', error);
-    return MOCK_ALBUMS;
-  }
+  return data.map((album) => ({
+    id: album.id.toString(),
+    title: decodeHtml(album.title.rendered),
+    year:
+      getString(album, 'year') || new Date().getFullYear().toString(),
+    cover: getCover(album),
+    tracks: Number(getField(album, 'tracks')) || 0,
+    spotifyUrl: getString(album, 'spotify_url'),
+    appleMusicUrl: getString(album, 'apple_music_url'),
+  }));
 };
 
 type WPMediaRef =
@@ -197,69 +179,47 @@ const resolveAudioUrl = async (
   return '';
 };
 
-// Fetch tracks from WordPress - falls back to mock data on error
 export const fetchTracks = async (): Promise<Track[]> => {
-  try {
-    const response = await fetch(
-      `${WP_API_URL}?rest_route=/wp/v2/track&_embed&per_page=20&orderby=menu_order&order=asc`
-    );
+  const response = await fetch(
+    `${WP_API_URL}?rest_route=/wp/v2/track&_embed&per_page=20&orderby=menu_order&order=asc`
+  );
 
-    if (response.status === 404) {
-      debugLog('Track endpoints not found - using mock data');
-      return MOCK_TRACKS;
-    }
+  if (!response.ok) throw new Error(`Failed to fetch tracks: HTTP ${response.status}`);
 
-    if (!response.ok) throw new Error(`Failed to fetch tracks: HTTP ${response.status}`);
+  const data: WPPost[] = await response.json();
 
-    const data: WPPost[] = await response.json();
+  return await Promise.all(
+    data.map(async (track) => {
+      const rawAudioUrl = getField(track, 'audio_url');
+      const audioUrl =
+        extractAudioUrlFromContent(track.content?.rendered) ||
+        (rawAudioUrl ? await resolveAudioUrl(rawAudioUrl as WPMediaRef) : '');
 
-    return await Promise.all(
-      data.map(async (track) => {
-        const rawAudioUrl = getField(track, 'audio_url');
-        const audioUrl =
-          extractAudioUrlFromContent(track.content?.rendered) ||
-          (rawAudioUrl ? await resolveAudioUrl(rawAudioUrl as WPMediaRef) : '');
-
-        return {
-          id: track.id.toString(),
-          title: decodeHtml(track.title.rendered),
-          artist: getString(track, 'artist') || 'Tek-Domain',
-          duration: getString(track, 'duration'),
-          cover: getCover(track),
-          genre: capitalize(getString(track, 'genre') || 'Hip-hop'),
-          audioUrl,
-        };
-      })
-    );
-  } catch (error) {
-    warnFallback('Fetching tracks', error);
-    return MOCK_TRACKS;
-  }
+      return {
+        id: track.id.toString(),
+        title: decodeHtml(track.title.rendered),
+        artist: getString(track, 'artist') || 'Tek-Domain',
+        duration: getString(track, 'duration'),
+        cover: getCover(track),
+        genre: capitalize(getString(track, 'genre') || 'Hip-hop'),
+        audioUrl,
+      };
+    })
+  );
 };
 
-// Fetch services from WordPress - falls back to mock data on error
 export const fetchServices = async (): Promise<Service[]> => {
-  try {
-    const response = await fetch(
-      `${WP_API_URL}?rest_route=/wp/v2/service&per_page=10`
-    );
+  const response = await fetch(
+    `${WP_API_URL}?rest_route=/wp/v2/service&per_page=10`
+  );
 
-    if (response.status === 404) {
-      debugLog('Service endpoints not found - using mock data');
-      return MOCK_SERVICES;
-    }
+  if (!response.ok) throw new Error(`Failed to fetch services: HTTP ${response.status}`);
 
-    if (!response.ok) throw new Error(`Failed to fetch services: HTTP ${response.status}`);
+  const data: WPPost[] = await response.json();
 
-    const data: WPPost[] = await response.json();
-
-    return data.map((service) => ({
-      id: service.id.toString(),
-      title: decodeHtml(service.title.rendered),
-      description: decodeHtml(service.excerpt.rendered),
-    }));
-  } catch (error) {
-    warnFallback('Fetching services', error);
-    return MOCK_SERVICES;
-  }
+  return data.map((service) => ({
+    id: service.id.toString(),
+    title: decodeHtml(service.title.rendered),
+    description: decodeHtml(service.excerpt.rendered),
+  }));
 };

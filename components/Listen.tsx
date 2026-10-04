@@ -2,6 +2,7 @@ import React from 'react';
 import { Play, Pause, SkipBack, SkipForward, Volume2, VolumeX } from 'lucide-react';
 import { usePlayer } from './player/PlayerProvider';
 import { formatTime } from './player/formatTime';
+import LoadError from './LoadError';
 
 const fillStyle = (value: number, max: number) =>
   ({ '--fill': `${max > 0 ? (value / max) * 100 : 0}%` }) as React.CSSProperties;
@@ -9,7 +10,8 @@ const fillStyle = (value: number, max: number) =>
 const Listen: React.FC = () => {
   const {
     tracks,
-    loading,
+    loadStatus,
+    retryTracks,
     index,
     track,
     status,
@@ -34,7 +36,9 @@ const Listen: React.FC = () => {
       <div className="mx-auto max-w-[1200px] px-6">
         <h2 className="display text-4xl md:text-6xl mb-12">Listen</h2>
 
-        {loading ? (
+        {loadStatus === 'error' ? (
+          <LoadError what="tracks" onRetry={retryTracks} />
+        ) : loadStatus === 'loading' ? (
           <div className="grid gap-px" aria-hidden="true">
             {Array.from({ length: 6 }, (_, i) => (
               <div key={i} className="h-[72px] rounded-md bg-panel" />

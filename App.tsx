@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useState } from 'react';
 import Header from './components/Header';
 import Hero from './components/Hero';
 import Listen from './components/Listen';
@@ -9,19 +9,17 @@ import AiOracle from './components/AiOracle';
 import Contact from './components/Contact';
 import Footer from './components/Footer';
 import { PlayerProvider } from './components/player/PlayerProvider';
+import { useRemote } from './components/useRemote';
 import { SECTIONS } from './constants';
 import { fetchAlbums, fetchServices } from './services/wordpressService';
-import type { Album, Service } from './types';
 
 const App: React.FC = () => {
-  const [services, setServices] = useState<Service[] | null>(null);
-  const [albums, setAlbums] = useState<Album[]>([]);
+  const [services, retryServices] = useRemote(fetchServices);
+  const [remoteAlbums] = useRemote(fetchAlbums);
   const [selectedService, setSelectedService] = useState<string | null>(null);
 
-  useEffect(() => {
-    fetchServices().then(setServices);
-    fetchAlbums().then(setAlbums);
-  }, []);
+  // Records are optional, so a failed load hides the section instead of showing an error
+  const albums = remoteAlbums.status === 'ready' ? remoteAlbums.data : [];
 
   const sections = SECTIONS.filter(
     (section) => section.id !== 'records' || albums.length > 0
@@ -39,12 +37,12 @@ const App: React.FC = () => {
         <main>
           <Hero />
           <Listen />
-          <Services services={services} onBook={bookService} />
+          <Services services={services} onRetry={retryServices} onBook={bookService} />
           <Albums albums={albums} />
           <About />
           <AiOracle />
           <Contact
-            services={services}
+            services={services.status === 'ready' ? services.data : null}
             selectedService={selectedService}
             onSelectService={setSelectedService}
           />

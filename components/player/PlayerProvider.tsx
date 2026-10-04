@@ -3,14 +3,16 @@ import React, {
   useCallback,
   useContext,
   useEffect,
+  useLayoutEffect,
   useMemo,
   useReducer,
   useRef,
   useState,
 } from 'react';
 import { fetchTracks } from '@/services/wordpressService';
-import type { Track } from '@/types';
+import type { Remote, Track } from '@/types';
 import { formatTime } from './formatTime';
+import { useRemote } from '../useRemote';
 
 type PlayerStatus = 'idle' | 'playing' | 'paused';
 type PlayerState = { tracks: Track[]; index: number; status: PlayerStatus };
@@ -66,7 +68,8 @@ const reducer = (state: PlayerState, action: PlayerAction): PlayerState => {
 
 interface PlayerContextValue {
   tracks: Track[];
-  loading: boolean;
+  loadStatus: Remote<Track[]>['status'];
+  retryTracks: () => void;
   index: number;
   track: Track | undefined;
   status: PlayerStatus;
@@ -99,7 +102,7 @@ export const PlayerProvider: React.FC<{ children: React.ReactNode }> = ({
     index: 0,
     status: 'idle',
   });
-  const [loading, setLoading] = useState(true);
+  const [remoteTracks, retryTracks] = useRemote(fetchTracks);
   const [currentTime, setCurrentTime] = useState(0);
   const [duration, setDuration] = useState(0);
   const [volume, setVolumeState] = useState(0.8);
@@ -109,19 +112,10 @@ export const PlayerProvider: React.FC<{ children: React.ReactNode }> = ({
   const audioRef = useRef<HTMLAudioElement>(null);
   const track = tracks[index];
 
-  useEffect(() => {
-    let cancelled = false;
-    fetchTracks()
-      .then((data) => {
-        if (!cancelled) dispatch({ type: 'loaded', tracks: data });
-      })
-      .finally(() => {
-        if (!cancelled) setLoading(false);
-      });
-    return () => {
-      cancelled = true;
-    };
-  }, []);
+  // Layout effect so the list never paints as "ready" with zero tracks
+  useLayoutEffect(() => {
+    if (remoteTracks.status === 'ready') dispatch({ type: 'loaded', tracks: remoteTracks.data });
+  }, [remoteTracks]);
 
   // Read every track's length in the background so the list shows real times
   useEffect(() => {
@@ -198,7 +192,8 @@ export const PlayerProvider: React.FC<{ children: React.ReactNode }> = ({
   const value = useMemo<PlayerContextValue>(
     () => ({
       tracks,
-      loading,
+      loadStatus: remoteTracks.status,
+      retryTracks,
       index,
       track,
       status,
@@ -217,7 +212,8 @@ export const PlayerProvider: React.FC<{ children: React.ReactNode }> = ({
     }),
     [
       tracks,
-      loading,
+      remoteTracks.status,
+      retryTracks,
       index,
       track,
       status,

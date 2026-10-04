@@ -40,3 +40,8 @@ export interface Section {
   id: string;
   label: string;
 }
+
+export type Remote<T> =
+  | { status: 'loading' }
+  | { status: 'ready'; data: T }
+  | { status: 'error' };
