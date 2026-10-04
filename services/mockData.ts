@@ -131,10 +131,3 @@ export const MOCK_SERVICES = [
     icon: 'headphones',
   },
 ];
-
-export const MOCK_ABOUT = {
-  title: 'About Studio Eighty7',
-  content:
-    '<p>Studio Eighty7 is a state-of-the-art recording studio and production house founded by Tek-Domain. We specialize in hip-hop, R&B, and electronic music production, delivering high-quality sound to artists worldwide.</p><p>Our mission is simple: provide professional-grade production services that help artists realize their creative vision without compromise.</p>',
-  excerpt: 'State-of-the-art recording studio and production house.',
-};

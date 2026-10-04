@@ -51,7 +51,6 @@ const PROD_SECURITY_HEADERS = {
     'gyroscope=()',
     'accelerometer=()',
   ].join(', '),
-  'Cross-Origin-Embedder-Policy': 'require-corp',
   'Cross-Origin-Opener-Policy': 'same-origin',
 };
 

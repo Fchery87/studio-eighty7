@@ -2,7 +2,6 @@ import {
   MOCK_ALBUMS,
   MOCK_TRACKS,
   MOCK_SERVICES,
-  MOCK_ABOUT,
 } from './mockData';
 
 // Use proxy in development to avoid CORS issues
@@ -283,31 +282,5 @@ export const fetchServices = async (): Promise<any[]> => {
   } catch (error) {
     debugLog('Error fetching services - using mock data');
     return MOCK_SERVICES;
-  }
-};
-
-// Fetch about page content - falls back to mock data on error
-export const fetchAboutContent = async () => {
-  try {
-    const response = await fetch(`${WP_API_URL}/pages?slug=about`);
-
-    if (response.status === 404) {
-      debugLog('About page not found - using mock data');
-      return MOCK_ABOUT;
-    }
-
-    if (!response.ok) throw new Error('Failed to fetch about page');
-
-    const data = await response.json();
-    const page = data[0];
-
-    return {
-      title: page.title.rendered,
-      content: page.content.rendered,
-      excerpt: page.excerpt.rendered,
-    };
-  } catch (error) {
-    debugLog('Error fetching about content - using mock data');
-    return MOCK_ABOUT;
   }
 };
