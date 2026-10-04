@@ -190,7 +190,6 @@ Strict mode enabled with:
 
 - **[AGENTS.md](AGENTS.md)** - AI agent coding guidelines and patterns
 - **[DEV_GUIDE.md](DEV_GUIDE.md)** - Development workflow and best practices
-- **[QUICK_START.md](QUICK_START.md)** - Condensed setup instructions
 - **[WORDPRESS_SETUP_GUIDE.md](WORDPRESS_SETUP_GUIDE.md)** - CMS integration guide
 - **[SECURITY_HEADERS.md](SECURITY_HEADERS.md)** - Detailed security documentation
 
