@@ -1,66 +1,59 @@
 // Mock data for development when WordPress API is not available
 
+import type { Album, Service, Track } from '@/types';
+
 // SVG placeholder generator - creates local placeholders without network requests
 const createPlaceholder = (text: string, size = 500) => {
   const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${size}" height="${size}" viewBox="0 0 ${size} ${size}">
-    <rect width="100%" height="100%" fill="#050505"/>
+    <rect width="100%" height="100%" fill="#1A1411"/>
     <rect x="10" y="10" width="${size - 20}" height="${
     size - 20
-  }" fill="none" stroke="#DC2626" stroke-width="2"/>
-    <text x="50%" y="50%" dominant-baseline="middle" text-anchor="middle" fill="#DC2626" font-family="sans-serif" font-size="32" font-weight="bold">${text}</text>
+  }" fill="none" stroke="#F0A23B" stroke-width="2"/>
+    <text x="50%" y="50%" dominant-baseline="middle" text-anchor="middle" fill="#F0A23B" font-family="sans-serif" font-size="32" font-weight="bold">${text}</text>
   </svg>`;
   return `data:image/svg+xml,${encodeURIComponent(svg)}`;
 };
 
-export const MOCK_ALBUMS = [
+export const MOCK_ALBUMS: Album[] = [
   {
     id: '1',
     title: 'Katana Dreams',
-    subtitle: 'Tek-Domain Production',
     year: '2024',
     cover: createPlaceholder('KATANA'),
     tracks: 12,
-    description:
-      'A sonic journey through the streets, featuring hard-hitting beats and raw lyrics.',
-    spotifyUrl: '#',
-    appleMusicUrl: '#',
+    spotifyUrl: null,
+    appleMusicUrl: null,
   },
   {
     id: '2',
     title: 'Blade Runner',
-    subtitle: 'Studio Eighty7',
     year: '2023',
     cover: createPlaceholder('BLADE'),
     tracks: 10,
-    description: 'Dark, atmospheric hip-hop with futuristic production.',
-    spotifyUrl: '#',
-    appleMusicUrl: '#',
+    spotifyUrl: null,
+    appleMusicUrl: null,
   },
   {
     id: '3',
     title: 'Ronin Mode',
-    subtitle: 'Tek-Domain',
     year: '2023',
     cover: createPlaceholder('RONIN'),
     tracks: 8,
-    description: 'Aggressive bars over experimental beats.',
-    spotifyUrl: '#',
-    appleMusicUrl: '#',
+    spotifyUrl: null,
+    appleMusicUrl: null,
   },
   {
     id: '4',
     title: 'Shadow Warrior',
-    subtitle: 'Studio Eighty7',
     year: '2022',
     cover: createPlaceholder('SHADOW'),
     tracks: 15,
-    description: 'Classic boom-bap meets modern production.',
-    spotifyUrl: '#',
-    appleMusicUrl: '#',
+    spotifyUrl: null,
+    appleMusicUrl: null,
   },
 ];
 
-export const MOCK_TRACKS = [
+export const MOCK_TRACKS: Track[] = [
   {
     id: '1',
     title: 'Katana Sharp',
@@ -108,26 +101,23 @@ export const MOCK_TRACKS = [
   },
 ];
 
-export const MOCK_SERVICES = [
+export const MOCK_SERVICES: Service[] = [
   {
     id: '1',
     title: 'Music Production',
     description:
       'Full-scale beat production from concept to completion. We craft custom instrumentals tailored to your vision, genre, and style.',
-    icon: 'music',
   },
   {
     id: '2',
     title: 'Mixing & Mastering',
     description:
       'Professional mixing and mastering services to give your tracks the polished, radio-ready sound they deserve.',
-    icon: 'sliders',
   },
   {
     id: '3',
     title: 'Artist Development',
     description:
       'Comprehensive artist development including branding, sound design, and career guidance for emerging talent.',
-    icon: 'headphones',
   },
 ];

@@ -14,9 +14,9 @@ export const STATS: Stat[] = [
 ];
 
 export const GENRES: Genre[] = [
-  { name: 'Hip-Hop', color: '#DC2626' },
-  { name: 'Trap', color: '#7C3AED' },
-  { name: 'R&B', color: '#0891B2' },
-  { name: 'Kompa', color: '#059669' },
-  { name: 'Afro', color: '#EA580C' }
+  { name: 'Hip-hop', level: 72 },
+  { name: 'Trap', level: 48 },
+  { name: 'R&B', level: 60 },
+  { name: 'Kompa', level: 34 },
+  { name: 'Afro', level: 80 },
 ];

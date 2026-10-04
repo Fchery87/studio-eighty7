@@ -69,7 +69,6 @@ const Hero: React.FC = () => {
                 <div 
                   key={index}
                   className="px-5 py-2 border border-white/20 text-white text-sm font-semibold uppercase tracking-wider hover:border-white/50 transition-colors cursor-default"
-                  style={{ borderColor: `${genre.color}40` }}
                 >
                   {genre.name}
                 </div>

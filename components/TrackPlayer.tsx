@@ -192,7 +192,7 @@ const TrackPlayer: React.FC = () => {
                 </div>
 
                 <div className="text-gray-500 font-mono text-sm">
-                  {trackDurations[t.id] || (t.duration !== '3:00' ? t.duration : '--:--')}
+                  {trackDurations[t.id] || t.duration || '--:--'}
                 </div>
 
                 {currentTrack === index ? (

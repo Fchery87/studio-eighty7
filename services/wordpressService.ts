@@ -3,6 +3,7 @@ import {
   MOCK_TRACKS,
   MOCK_SERVICES,
 } from './mockData';
+import type { Album, Service, Track } from '@/types';
 
 // Use proxy in development to avoid CORS issues
 const isDev = import.meta.env.DEV;
@@ -12,7 +13,7 @@ const WP_API_BASE = 'https://studioeighty7.com/index.php';
 const WP_API_URL = isDev ? '/wp-api' : WP_API_BASE;
 
 // Quiet logging - only log in development when DEBUG is enabled
-const debugLog = (...args: any[]) => {
+const debugLog = (...args: unknown[]) => {
   if (isDev && localStorage.getItem('DEBUG') === 'true') {
     console.log('[WordPress]', ...args);
   }
@@ -23,8 +24,8 @@ export interface WPPost {
   title: { rendered: string };
   content: { rendered: string };
   excerpt: { rendered: string };
-  acf?: any;
-  featured_media?: number;
+  acf?: Record<string, unknown> | [];
+  meta?: Record<string, unknown>;
   _embedded?: {
     'wp:featuredmedia'?: Array<{
       source_url: string;
@@ -33,30 +34,33 @@ export interface WPPost {
   };
 }
 
-export interface WPAlbum extends WPPost {
-  acf: {
-    subtitle?: string;
-    year?: string;
-    tracks?: number;
-    album_art?: string;
-    spotify_url?: string;
-    apple_music_url?: string;
-  };
-}
+// Strips markup and decodes entities such as &#038; in one pass
+export const decodeHtml = (html: string): string =>
+  new DOMParser().parseFromString(html, 'text/html').documentElement
+    .textContent?.trim() ?? '';
 
-export interface WPTrack extends WPPost {
-  acf?: {
-    artist?: string;
-    duration?: string;
-    genre?: string;
-    audio_url?: WPMediaRef;
-    album_id?: number;
-  };
-  meta?: Record<string, unknown>;
-}
+// ACF returns an empty array instead of an object when a post has no fields
+const getField = (post: WPPost, key: string): unknown => {
+  const acf = post.acf;
+  const fromAcf = acf && !Array.isArray(acf) ? acf[key] : undefined;
+  return fromAcf || post.meta?.[key] || undefined;
+};
+
+const getString = (post: WPPost, key: string): string | null => {
+  const value = getField(post, key);
+  return typeof value === 'string' && value ? value : null;
+};
+
+const capitalize = (value: string) =>
+  value.charAt(0).toUpperCase() + value.slice(1);
+
+const getCover = (post: WPPost) =>
+  post._embedded?.['wp:featuredmedia']?.[0]?.source_url ||
+  getString(post, 'album_art') ||
+  '/placeholder.svg';
 
 // Fetch albums from WordPress - falls back to mock data on error
-export const fetchAlbums = async (): Promise<any[]> => {
+export const fetchAlbums = async (): Promise<Album[]> => {
   try {
     const response = await fetch(
       `${WP_API_URL}?rest_route=/wp/v2/album&_embed`
@@ -69,21 +73,17 @@ export const fetchAlbums = async (): Promise<any[]> => {
 
     if (!response.ok) throw new Error('Failed to fetch albums');
 
-    const data = await response.json();
+    const data: WPPost[] = await response.json();
 
-    return data.map((album: WPAlbum) => ({
+    return data.map((album) => ({
       id: album.id.toString(),
-      title: album.title.rendered,
-      subtitle: album.acf?.subtitle || 'Studio Eighty7',
-      year: album.acf?.year || new Date().getFullYear().toString(),
-      cover:
-        album._embedded?.['wp:featuredmedia']?.[0]?.source_url ||
-        album.acf?.album_art ||
-        '/placeholder.svg',
-      tracks: album.acf?.tracks || 0,
-      description: album.excerpt.rendered.replace(/<[^>]*>/g, ''),
-      spotifyUrl: album.acf?.spotify_url || '#',
-      appleMusicUrl: album.acf?.apple_music_url || '#',
+      title: decodeHtml(album.title.rendered),
+      year:
+        getString(album, 'year') || new Date().getFullYear().toString(),
+      cover: getCover(album),
+      tracks: Number(getField(album, 'tracks')) || 0,
+      spotifyUrl: getString(album, 'spotify_url'),
+      appleMusicUrl: getString(album, 'apple_music_url'),
     }));
   } catch (error) {
     debugLog('Error fetching albums - using mock data');
@@ -193,7 +193,7 @@ const resolveAudioUrl = async (
 };
 
 // Fetch tracks from WordPress - falls back to mock data on error
-export const fetchTracks = async (): Promise<any[]> => {
+export const fetchTracks = async (): Promise<Track[]> => {
   try {
     const response = await fetch(
       `${WP_API_URL}?rest_route=/wp/v2/track&_embed&per_page=20&orderby=menu_order&order=asc`
@@ -206,50 +206,26 @@ export const fetchTracks = async (): Promise<any[]> => {
 
     if (!response.ok) throw new Error('Failed to fetch tracks');
 
-    const data = await response.json();
+    const data: WPPost[] = await response.json();
 
-    // Process tracks and resolve audio URLs
-    const tracksWithUrls = await Promise.all(
-      data.map(async (track: WPTrack) => {
-        // Helper to safely get ACF field (ACF can return empty array instead of object)
-        const getAcf = (key: string) => {
-          if (track.acf && !Array.isArray(track.acf) && track.acf[key]) {
-            return track.acf[key];
-          }
-          return undefined;
-        };
-
-        const contentAudioUrl = extractAudioUrlFromContent(
-          track.content?.rendered
-        );
-        const rawAudioUrl = getAcf('audio_url') ?? track.meta?.audio_url ?? '';
+    return await Promise.all(
+      data.map(async (track) => {
+        const rawAudioUrl = getField(track, 'audio_url');
         const audioUrl =
-          contentAudioUrl ||
+          extractAudioUrlFromContent(track.content?.rendered) ||
           (rawAudioUrl ? await resolveAudioUrl(rawAudioUrl as WPMediaRef) : '');
-
-        // Get duration from meta first (native), then ACF, then fallback
-        const metaDuration = track.meta?.duration as string;
-        const acfDuration = getAcf('duration') as string;
-        const duration = metaDuration || acfDuration || '3:00';
 
         return {
           id: track.id.toString(),
-          title: track.title.rendered,
-          artist:
-            (getAcf('artist') as string) ||
-            (track.meta?.artist as string) ||
-            'Tek-Domain',
-          duration,
-          cover:
-            track._embedded?.['wp:featuredmedia']?.[0]?.source_url ||
-            '/placeholder.svg',
-          genre: (getAcf('genre') as string) || 'Hip-Hop',
+          title: decodeHtml(track.title.rendered),
+          artist: getString(track, 'artist') || 'Tek-Domain',
+          duration: getString(track, 'duration'),
+          cover: getCover(track),
+          genre: capitalize(getString(track, 'genre') || 'Hip-hop'),
           audioUrl,
         };
       })
     );
-
-    return tracksWithUrls;
   } catch (error) {
     debugLog('Error fetching tracks - using mock data');
     return MOCK_TRACKS;
@@ -257,7 +233,7 @@ export const fetchTracks = async (): Promise<any[]> => {
 };
 
 // Fetch services from WordPress - falls back to mock data on error
-export const fetchServices = async (): Promise<any[]> => {
+export const fetchServices = async (): Promise<Service[]> => {
   try {
     const response = await fetch(
       `${WP_API_URL}?rest_route=/wp/v2/service&per_page=10`
@@ -270,14 +246,12 @@ export const fetchServices = async (): Promise<any[]> => {
 
     if (!response.ok) throw new Error('Failed to fetch services');
 
-    const data = await response.json();
+    const data: WPPost[] = await response.json();
 
-    return data.map((service: WPPost, index: number) => ({
+    return data.map((service) => ({
       id: service.id.toString(),
-      title: service.title.rendered,
-      description: service.excerpt.rendered.replace(/<[^>]*>/g, ''),
-      icon: service.acf?.icon || ['music', 'sliders', 'headphones'][index % 3],
-      price: service.acf?.price || '',
+      title: decodeHtml(service.title.rendered),
+      description: decodeHtml(service.excerpt.rendered),
     }));
   } catch (error) {
     debugLog('Error fetching services - using mock data');
