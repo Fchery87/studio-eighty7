@@ -2,7 +2,8 @@ import express, { Request, Response, NextFunction } from 'express';
 import cors from 'cors';
 import helmet from 'helmet';
 import rateLimit from 'express-rate-limit';
-import { configuredProviders, hookPrompt, ProviderError } from './hookProviders.js';
+import { configuredProviders, ProviderError } from './hookProviders.js';
+import { hookMessages } from './hookPrompt.js';
 import { z } from 'zod';
 import dotenv from 'dotenv';
 
@@ -164,6 +165,16 @@ app.get('/health', (req: Request, res: Response) => {
 });
 
 // Generate endpoint with rate limiting and validation
+// Models sometimes add quotes, labels or blank lines despite the prompt
+const cleanHook = (raw: string) =>
+  raw
+    .split('\n')
+    // Double quotes only: a trailing apostrophe is slang ("rollin'"), not a quote
+    .map((line) => line.trim().replace(/^["“”]+|["“”]+$/g, '').trim())
+    .filter((line) => line && !/^(hook|chorus|title)\s*:?$/i.test(line))
+    .slice(0, 6)
+    .join('\n');
+
 app.post('/api/generate', generateRateLimiter, async (req: Request, res: Response) => {
   const parsed = GenerateRequestSchema.safeParse(req.body);
   if (!parsed.success) {
@@ -179,12 +190,11 @@ app.post('/api/generate', generateRateLimiter, async (req: Request, res: Respons
     return;
   }
 
-  const prompt = hookPrompt(parsed.data.topic);
+  const messages = hookMessages(parsed.data.topic);
   let rateLimited = false;
   for (const provider of providers) {
     try {
-      // Models often wrap the line in quotes; the page sets it as display type without them
-      const hook = (await provider.generate(prompt)).replace(/^["“']+|["”']+$/g, '').trim();
+      const hook = cleanHook(await provider.generate(messages));
       if (!hook) throw new ProviderError(provider.name, 502, 'empty response');
       res.status(200).json({ success: true, data: hook, provider: provider.name });
       return;

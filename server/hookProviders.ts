@@ -1,8 +1,9 @@
 import { GoogleGenAI } from '@google/genai';
+import type { HookMessages } from './hookPrompt.js';
 
 export interface HookProvider {
   name: 'DeepSeek' | 'Gemini';
-  generate: (prompt: string) => Promise<string>;
+  generate: (messages: HookMessages) => Promise<string>;
 }
 
 export class ProviderError extends Error {
@@ -15,24 +16,23 @@ export class ProviderError extends Error {
   }
 }
 
-export const hookPrompt = (topic: string) =>
-  `You are a legendary music producer and lyricist for Studio Eighty7.
-The user needs a song concept, title, or a one-line lyric hook for: "${topic}".
-Provide a punchy, moody, or hard-hitting creative text snippet.
-Keep it under 20 words. Focus on rhythm, emotion, and grit. Reply with the hook only.`;
-
 const deepSeek = (apiKey: string): HookProvider => ({
   name: 'DeepSeek',
-  generate: async (prompt) => {
+  generate: async ({ system, user }) => {
     const response = await fetch('https://api.deepseek.com/chat/completions', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${apiKey}` },
       body: JSON.stringify({
         model: 'deepseek-flash',
-        messages: [{ role: 'user', content: prompt }],
+        messages: [
+          { role: 'system', content: system },
+          { role: 'user', content: user },
+        ],
         // A 20-word hook does not need chain-of-thought; thinking is on by default
         thinking: { type: 'disabled' },
-        max_tokens: 100,
+        // DeepSeek recommends a high temperature for creative writing
+        temperature: 1.3,
+        max_tokens: 160,
       }),
       signal: AbortSignal.timeout(20_000),
     });
@@ -52,9 +52,13 @@ const gemini = (apiKey: string): HookProvider => {
   });
   return {
     name: 'Gemini',
-    generate: async (prompt) => {
+    generate: async ({ system, user }) => {
       try {
-        const response = await ai.models.generateContent({ model: 'gemini-3.6-flash', contents: prompt });
+        const response = await ai.models.generateContent({
+          model: 'gemini-3.6-flash',
+          contents: user,
+          config: { systemInstruction: system, temperature: 1.2 },
+        });
         return (response.text ?? '').trim();
       } catch (error) {
         const status = (error as { status?: number }).status ?? 500;

@@ -268,7 +268,7 @@ const AiOracle: React.FC = () => {
         <div aria-live="polite" className="mt-10 max-w-[900px]">
           {status === 'done' && (
             <div className="rounded-xl border border-line bg-panel p-6 md:p-8">
-              <p className="display text-2xl md:text-4xl leading-[1.05]">{result}</p>
+              <p className="display whitespace-pre-line text-2xl md:text-[2rem] leading-[1.15]">{result}</p>
               <div className="mt-6 flex flex-wrap gap-3">
                 <button
                   type="button"
