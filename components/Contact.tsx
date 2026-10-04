@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
-import { Mail, MessageSquare, Send, CheckCircle, AlertCircle } from 'lucide-react';
 import { z } from 'zod';
+import type { Service } from '@/types';
 
 // Client-side validation schema matching server
 const ContactSchema = z.object({
@@ -33,7 +33,19 @@ interface ContactResponse {
   field?: string;
 }
 
-const Contact: React.FC = () => {
+interface ContactProps {
+  services: Service[] | null;
+  selectedService: string | null;
+  onSelectService: (title: string) => void;
+}
+
+const OTHER_SERVICE = 'Something else';
+
+const Contact: React.FC<ContactProps> = ({
+  services,
+  selectedService,
+  onSelectService,
+}) => {
   const [formData, setFormData] = useState<FormData>({
     name: '',
     email: '',
@@ -102,7 +114,7 @@ const Contact: React.FC = () => {
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify(formData),
+        body: JSON.stringify({ ...formData, service: selectedService ?? undefined }),
       });
 
       const data: ContactResponse = await response.json();
@@ -110,200 +122,177 @@ const Contact: React.FC = () => {
       if (response.ok && data.success) {
         setIsSubmitted(true);
         setFormData({ name: '', email: '', message: '' });
-        // Reset success state after 5 seconds
-        setTimeout(() => setIsSubmitted(false), 5000);
       } else {
         // Handle server validation errors
         if (data.field) {
           setErrors({ [data.field]: data.message || data.error });
         } else {
-          setSubmitError(data.message || data.error || 'Unable to send message. Please try again.');
+          setSubmitError(data.message || data.error || 'The request was not sent. Try again, or email us directly.');
         }
       }
     } catch {
-      setSubmitError('Network error. Please check your connection and try again.');
+      setSubmitError('The request was not sent. Check your connection and try again.');
     } finally {
       setIsSubmitting(false);
     }
   };
 
-  const hasErrors = Object.keys(errors).length > 0;
   const isFormValid = formData.name.length >= 2 && formData.email.includes('@') && formData.message.length >= 10;
+  const options = [...(services ?? []).map((service) => service.title), OTHER_SERVICE];
+
+  const fieldClass = (field: keyof FormData) =>
+    `w-full rounded-md border bg-walnut px-4 py-3 text-bone placeholder:text-dust ${
+      errors[field] ? 'border-amber' : 'border-line'
+    }`;
 
   return (
-    <section id="book" className="py-24 bg-samurai-black relative">
-      <div className="max-w-7xl mx-auto px-6">
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-16">
-          
-          {/* Left Content */}
-          <div>
-            <div className="mb-8">
-              <h2 className="text-sm font-bold tracking-[0.3em] text-samurai-red mb-2 uppercase">Get In Touch</h2>
-              <h3 className="font-display text-5xl md:text-6xl text-white uppercase font-bold leading-tight">
-                Let's Make Something Great
-              </h3>
+    <section id="book" className="py-20 md:py-28">
+      <div className="mx-auto max-w-[1200px] px-6 grid grid-cols-1 lg:grid-cols-2 gap-12 lg:gap-16">
+        <div>
+          <h2 className="display text-4xl md:text-6xl mb-8">Book a session</h2>
+          <p className="text-dust max-w-[40ch] mb-8">
+            Tell us what you are working on and we will reply within 24 hours.
+          </p>
+          <ul className="space-y-2">
+            <li>
+              <a href="mailto:info@studioeighty7.com" className="text-amber hover:underline">
+                info@studioeighty7.com
+              </a>
+            </li>
+            <li>
+              <a
+                href="https://www.instagram.com/studioeighty7/"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-amber hover:underline"
+              >
+                @studioeighty7 on Instagram
+              </a>
+            </li>
+          </ul>
+        </div>
+
+        <div className="rounded-xl bg-panel p-6 md:p-8">
+          {isSubmitted ? (
+            <div className="py-8">
+              <h3 className="display text-4xl mb-4">Request sent</h3>
+              <p className="text-dust mb-6">We reply within 24 hours.</p>
+              <button
+                type="button"
+                onClick={() => setIsSubmitted(false)}
+                className="rounded-md border border-bone px-5 py-2 font-semibold"
+              >
+                Send another
+              </button>
             </div>
-            
-            <p className="text-gray-400 leading-relaxed mb-8">
-              Ready to take your sound to the next level? Whether you need production, mixing, or custom beats, we're here to help bring your vision to life.
-            </p>
+          ) : (
+            <form onSubmit={handleSubmit} className="space-y-6" noValidate>
+              {submitError && <p role="alert">{submitError}</p>}
 
-            <div className="space-y-6">
-              <div className="flex items-start gap-4">
-                <div className="p-3 bg-samurai-red/10 rounded-lg">
-                  <Mail className="text-samurai-red" size={24} />
+              <fieldset>
+                <legend className="mb-2 text-sm text-dust">What do you need?</legend>
+                <div className="flex flex-wrap gap-2">
+                  {options.map((option) => (
+                    <label key={option}>
+                      <input
+                        type="radio"
+                        name="service"
+                        value={option}
+                        checked={selectedService === option}
+                        onChange={() => onSelectService(option)}
+                        className="peer sr-only"
+                      />
+                      <span className="block cursor-pointer rounded-full border border-line px-4 py-2 text-sm peer-checked:border-bone peer-checked:bg-bone peer-checked:text-walnut peer-focus-visible:outline-2 peer-focus-visible:outline-offset-3 peer-focus-visible:outline-amber">
+                        {option}
+                      </span>
+                    </label>
+                  ))}
                 </div>
-                <div>
-                  <h4 className="font-display text-lg text-white mb-1 uppercase">Email</h4>
-                  <p className="text-gray-400">info@studioeighty7.com</p>
-                </div>
-              </div>
+              </fieldset>
 
-              <div className="flex items-start gap-4">
-                <div className="p-3 bg-samurai-red/10 rounded-lg">
-                  <MessageSquare className="text-samurai-red" size={24} />
-                </div>
-                <div>
-                  <h4 className="font-display text-lg text-white mb-1 uppercase">Social Media</h4>
-                  <p className="text-gray-400">@studioeighty7</p>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          {/* Right Form */}
-          <div className="bg-white/5 border border-white/10 p-8">
-            {isSubmitted ? (
-              <div className="text-center py-12">
-                <CheckCircle className="text-samurai-red mx-auto mb-4" size={64} />
-                <h4 className="font-display text-2xl text-white mb-2 uppercase">Message Sent!</h4>
-                <p className="text-gray-400">We'll get back to you within 24 hours.</p>
-              </div>
-            ) : (
-              <form onSubmit={handleSubmit} className="space-y-6" noValidate>
-                {/* General submit error */}
-                {submitError && (
-                  <div className="bg-red-500/10 border border-red-500/30 rounded-lg p-4 flex items-start gap-3">
-                    <AlertCircle className="text-red-500 flex-shrink-0 mt-0.5" size={20} />
-                    <p className="text-red-400 text-sm">{submitError}</p>
-                  </div>
+              <div>
+                <label htmlFor="name" className="mb-2 block text-sm text-dust">
+                  Name
+                </label>
+                <input
+                  id="name"
+                  name="name"
+                  type="text"
+                  autoComplete="name"
+                  value={formData.name}
+                  onChange={handleInputChange('name')}
+                  required
+                  maxLength={100}
+                  aria-invalid={!!errors.name}
+                  aria-describedby={errors.name ? 'name-error' : undefined}
+                  className={fieldClass('name')}
+                />
+                {errors.name && (
+                  <p id="name-error" className="mt-2 text-sm text-amber">
+                    {errors.name}
+                  </p>
                 )}
+              </div>
 
-                <div>
-                  <label htmlFor="name" className="block text-sm font-semibold text-gray-400 uppercase tracking-wider mb-2">
-                    Name
-                  </label>
-                  <input
-                    id="name"
-                    type="text"
-                    value={formData.name}
-                    onChange={handleInputChange('name')}
-                    required
-                    maxLength={100}
-                    aria-invalid={!!errors.name}
-                    aria-describedby={errors.name ? 'name-error' : undefined}
-                    className={`w-full bg-white/5 border text-white px-4 py-3 outline-none transition-colors ${
-                      errors.name
-                        ? 'border-red-500/50 focus:border-red-500'
-                        : 'border-white/10 focus:border-samurai-red'
-                    }`}
-                    placeholder="Your name"
-                  />
-                  {errors.name && (
-                    <p id="name-error" className="mt-2 text-sm text-red-400 flex items-center gap-1">
-                      <AlertCircle size={14} />
-                      {errors.name}
+              <div>
+                <label htmlFor="email" className="mb-2 block text-sm text-dust">
+                  Email
+                </label>
+                <input
+                  id="email"
+                  name="email"
+                  type="email"
+                  autoComplete="email"
+                  value={formData.email}
+                  onChange={handleInputChange('email')}
+                  required
+                  maxLength={255}
+                  aria-invalid={!!errors.email}
+                  aria-describedby={errors.email ? 'email-error' : undefined}
+                  className={fieldClass('email')}
+                />
+                {errors.email && (
+                  <p id="email-error" className="mt-2 text-sm text-amber">
+                    {errors.email}
+                  </p>
+                )}
+              </div>
+
+              <div>
+                <label htmlFor="message" className="mb-2 block text-sm text-dust">
+                  Message
+                </label>
+                <textarea
+                  id="message"
+                  name="message"
+                  value={formData.message}
+                  onChange={handleInputChange('message')}
+                  required
+                  rows={4}
+                  maxLength={1000}
+                  aria-invalid={!!errors.message}
+                  aria-describedby={errors.message ? 'message-error' : undefined}
+                  className={`${fieldClass('message')} resize-none`}
+                />
+                <div className="mt-2 flex justify-between gap-4 text-sm">
+                  {errors.message && (
+                    <p id="message-error" className="text-amber">
+                      {errors.message}
                     </p>
                   )}
+                  <p className="data ml-auto text-dust">{formData.message.length}/1000</p>
                 </div>
+              </div>
 
-                <div>
-                  <label htmlFor="email" className="block text-sm font-semibold text-gray-400 uppercase tracking-wider mb-2">
-                    Email
-                  </label>
-                  <input
-                    id="email"
-                    type="email"
-                    value={formData.email}
-                    onChange={handleInputChange('email')}
-                    required
-                    maxLength={255}
-                    aria-invalid={!!errors.email}
-                    aria-describedby={errors.email ? 'email-error' : undefined}
-                    className={`w-full bg-white/5 border text-white px-4 py-3 outline-none transition-colors ${
-                      errors.email
-                        ? 'border-red-500/50 focus:border-red-500'
-                        : 'border-white/10 focus:border-samurai-red'
-                    }`}
-                    placeholder="your@email.com"
-                  />
-                  {errors.email && (
-                    <p id="email-error" className="mt-2 text-sm text-red-400 flex items-center gap-1">
-                      <AlertCircle size={14} />
-                      {errors.email}
-                    </p>
-                  )}
-                </div>
-
-                <div>
-                  <label htmlFor="message" className="block text-sm font-semibold text-gray-400 uppercase tracking-wider mb-2">
-                    Message
-                  </label>
-                  <textarea
-                    id="message"
-                    value={formData.message}
-                    onChange={handleInputChange('message')}
-                    required
-                    rows={4}
-                    maxLength={1000}
-                    aria-invalid={!!errors.message}
-                    aria-describedby={errors.message ? 'message-error' : undefined}
-                    className={`w-full bg-white/5 border text-white px-4 py-3 outline-none transition-colors resize-none ${
-                      errors.message
-                        ? 'border-red-500/50 focus:border-red-500'
-                        : 'border-white/10 focus:border-samurai-red'
-                    }`}
-                    placeholder="Tell us about your project..."
-                  />
-                  <div className="flex justify-between items-center mt-2">
-                    {errors.message && (
-                      <p id="message-error" className="text-sm text-red-400 flex items-center gap-1">
-                        <AlertCircle size={14} />
-                        {errors.message}
-                      </p>
-                    )}
-                    <p className={`text-xs ${errors.message ? 'text-red-400 ml-auto' : 'text-gray-500'}`}>
-                      {formData.message.length}/1000
-                    </p>
-                  </div>
-                </div>
-
-                <button
-                  type="submit"
-                  disabled={isSubmitting || !isFormValid}
-                  className="w-full bg-samurai-red hover:bg-red-700 text-white font-display text-lg uppercase tracking-wider py-4 flex items-center justify-center gap-2 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                >
-                  {isSubmitting ? (
-                    <>
-                      <span className="animate-pulse">Sending...</span>
-                    </>
-                  ) : (
-                    <>
-                      Send Message
-                      <Send size={20} />
-                    </>
-                  )}
-                </button>
-              </form>
-            )}
-
-            {/* Subscription Notice */}
-            <div className="mt-6 pt-6 border-t border-white/10 text-center">
-              <p className="text-sm text-gray-500">
-                By sending this message, you agree to receive email updates from Studio Eighty7.
-              </p>
-            </div>
-          </div>
+              <button
+                type="submit"
+                disabled={isSubmitting || !isFormValid}
+                className="w-full rounded-md bg-rec px-6 py-3 font-semibold text-bone disabled:opacity-50"
+              >
+                {isSubmitting ? 'Sending…' : 'Send request'}
+              </button>
+            </form>
+          )}
         </div>
       </div>
     </section>

@@ -1,7 +1,5 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { generateCreativeIdea } from '../services/geminiService';
-import { AiState } from '../types';
-import { Sparkles, Loader2, ArrowRight, Clock } from 'lucide-react';
 
 // Rate limiting configuration
 const RATE_LIMIT_COOLDOWN = 5000; // 5 seconds
@@ -70,12 +68,18 @@ const clearRateLimitStorage = (): void => {
   }
 };
 
+type HookStatus = 'idle' | 'loading' | 'done' | 'error';
+
 const AiOracle: React.FC = () => {
   const [topic, setTopic] = useState('');
   const [result, setResult] = useState('');
-  const [status, setStatus] = useState<AiState>(AiState.IDLE);
+  const [status, setStatus] = useState<HookStatus>('idle');
   const [cooldownRemaining, setCooldownRemaining] = useState(0);
   const [validationError, setValidationError] = useState('');
+  const [copied, setCopied] = useState(false);
+  const copiedTimer = useRef<number | undefined>(undefined);
+
+  useEffect(() => () => window.clearTimeout(copiedTimer.current), []);
 
   // Update cooldown timer
   useEffect(() => {
@@ -111,9 +115,7 @@ const AiOracle: React.FC = () => {
     return false;
   }, []);
 
-  const handleConsult = async (e: React.FormEvent) => {
-    e.preventDefault();
-
+  const generate = async () => {
     // Reset validation error
     setValidationError('');
 
@@ -122,7 +124,7 @@ const AiOracle: React.FC = () => {
 
     // Check for empty input
     if (!trimmedTopic) {
-      setValidationError('Please enter a vibe or topic');
+      setValidationError('Type a mood or a place first.');
       return;
     }
 
@@ -134,7 +136,7 @@ const AiOracle: React.FC = () => {
 
     // Check rate limiting
     if (isRateLimited()) {
-      setValidationError('Please wait before making another request');
+      setValidationError('Wait a few seconds before asking again.');
       return;
     }
 
@@ -143,16 +145,16 @@ const AiOracle: React.FC = () => {
 
     // Check if sanitization removed everything
     if (!sanitizedTopic) {
-      setValidationError('Please provide a valid topic');
+      setValidationError('That input could not be used. Try a mood or a place in plain words.');
       return;
     }
 
     // Check if loading
-    if (status === AiState.LOADING) {
+    if (status === 'loading') {
       return;
     }
 
-    setStatus(AiState.LOADING);
+    setStatus('loading');
     setResult('');
 
     // Save request timestamp for rate limiting
@@ -161,25 +163,25 @@ const AiOracle: React.FC = () => {
     try {
       const slogan = await generateCreativeIdea(sanitizedTopic);
       setResult(slogan);
-      setStatus(AiState.SUCCESS);
+      setStatus('done');
     } catch (error) {
       // Handle different error types with user-friendly messages
       if (error instanceof Error) {
         const message = error.message.toLowerCase();
 
         if (message.includes('429') || message.includes('rate limit')) {
-          setResult("Too many requests. Please wait a moment.");
+          setResult("Too many requests. Wait a moment, then try again.");
         } else if (message.includes('network') || message.includes('fetch')) {
-          setResult("Connection issue. Check your network.");
+          setResult("Could not reach the server. Check your connection and try again.");
         } else if (message.includes('timeout')) {
-          setResult("Request timed out. Try again.");
+          setResult("The request timed out. Try again.");
         } else {
-          setResult("Something went wrong. Please try again.");
+          setResult("Something went wrong on our side. Try again in a minute.");
         }
       } else {
-        setResult("Connection issue. Please try again.");
+        setResult("Could not reach the server. Check your connection and try again.");
       }
-      setStatus(AiState.ERROR);
+      setStatus('error');
     }
   };
 
@@ -200,82 +202,92 @@ const AiOracle: React.FC = () => {
     }
   };
 
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    generate();
+  };
+
+  const copyHook = async () => {
+    try {
+      await navigator.clipboard.writeText(result);
+      setCopied(true);
+      window.clearTimeout(copiedTimer.current);
+      copiedTimer.current = window.setTimeout(() => setCopied(false), 2000);
+    } catch {
+      setValidationError('Could not copy. Select the text and copy it by hand.');
+    }
+  };
+
+  const loading = status === 'loading';
+
   return (
-    <section id="write" className="py-24 bg-[#080808] border-t border-white/5">
-      <div className="max-w-4xl mx-auto px-6 text-center">
-        <div className="inline-flex items-center gap-2 px-3 py-1 border border-samurai-red/30 rounded-full bg-samurai-red/10 mb-6">
-          <Sparkles size={14} className="text-samurai-red" />
-          <span className="text-xs font-bold text-samurai-red uppercase tracking-wider">Powered by Gemini AI</span>
-        </div>
-        
-        <h2 className="font-display text-4xl md:text-6xl text-white mb-6 uppercase">Lyric Inspiration</h2>
-        <p className="text-gray-400 mb-12 max-w-lg mx-auto">
-          Need a hook or a concept? Enter a vibe, and our AI will drop a line to kickstart your track.
+    <section id="write" className="py-20 md:py-28">
+      <div className="mx-auto max-w-[1200px] px-6">
+        <h2 className="display text-4xl md:text-6xl mb-6">Hook lab</h2>
+        <p className="text-dust mb-10 max-w-[65ch]">
+          Type a mood or a place. Get a hook to start writing from.
         </p>
 
-        <form onSubmit={handleConsult} className="relative max-w-md mx-auto mb-12">
-          <div className="relative">
+        <form onSubmit={handleSubmit} className="max-w-[640px]">
+          <label htmlFor="hook-topic" className="sr-only">
+            Mood or place
+          </label>
+          <div className="flex flex-col sm:flex-row gap-3">
             <input
+              id="hook-topic"
               type="text"
               value={topic}
               onChange={handleInputChange}
-              placeholder="Enter a vibe (e.g., 'Late Night', 'Grind', 'Neon City')..."
+              placeholder="Late night, the grind, neon city"
               maxLength={MAX_INPUT_LENGTH}
-              className={`w-full bg-white/5 border text-white px-6 py-4 outline-none transition-colors font-display text-lg tracking-wide placeholder-gray-600 ${
-                validationError
-                  ? 'border-red-500 focus:border-red-500'
-                  : 'border-white/10 focus:border-samurai-red'
-              }`}
+              aria-invalid={Boolean(validationError)}
+              aria-describedby="hook-help"
+              className="flex-1 rounded-md border border-line bg-panel px-4 py-3 text-bone placeholder:text-dust"
             />
-            {/* Character count indicator */}
-            <div className="absolute right-2 top-1/2 -translate-y-1/2 flex items-center gap-2">
-              <span className={`text-xs ${
-                topic.length > MAX_INPUT_LENGTH * 0.9 ? 'text-red-400' : 'text-gray-500'
-              }`}>
-                {topic.length}/{MAX_INPUT_LENGTH}
-              </span>
-              {cooldownRemaining > 0 && (
-                <div className="flex items-center gap-1 text-xs text-yellow-400 bg-yellow-400/10 px-2 py-1 rounded">
-                  <Clock size={12} />
-                  <span>{cooldownRemaining}s</span>
-                </div>
-              )}
-              <button
-                type="submit"
-                disabled={status === AiState.LOADING || cooldownRemaining > 0}
-                className="bg-samurai-red hover:bg-red-700 text-white px-3 flex items-center justify-center transition-colors disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-samurai-red"
-              >
-                {status === AiState.LOADING ? <Loader2 className="animate-spin" size={20} /> : <ArrowRight size={20} />}
-              </button>
-            </div>
+            <button
+              type="submit"
+              disabled={loading || cooldownRemaining > 0}
+              className="rounded-md bg-bone px-6 py-3 font-semibold text-walnut disabled:opacity-50"
+            >
+              {loading ? 'Writing…' : 'Write a hook'}
+            </button>
           </div>
-
-          {/* Validation error message */}
-          {validationError && (
-            <div className="mt-3 text-sm text-red-400">
-              {validationError}
-            </div>
-          )}
-
-          {/* Cooldown message */}
-          {cooldownRemaining > 0 && !validationError && (
-            <div className="mt-3 text-sm text-yellow-400 flex items-center justify-center gap-2">
-              <Clock size={14} />
-              <span>Wait {cooldownRemaining} second{cooldownRemaining !== 1 ? 's' : ''} before next request</span>
-            </div>
-          )}
+          <div id="hook-help" className="mt-2 flex justify-between gap-4 text-sm text-dust">
+            <span role="alert">
+              {validationError ||
+                (cooldownRemaining > 0 ? `Ready again in ${cooldownRemaining}s.` : '')}
+            </span>
+            <span className="data">
+              {topic.length}/{MAX_INPUT_LENGTH}
+            </span>
+          </div>
         </form>
 
-        {result && (
-          <div className="">
-            <div className="bg-white/5 border border-samurai-red/30 p-8 relative overflow-hidden group">
-               <div className="absolute top-0 left-0 w-1 h-full bg-samurai-red"></div>
-               <p className="font-display text-2xl md:text-4xl text-white uppercase italic leading-tight">
-                 "{result}"
-               </p>
+        <div aria-live="polite" className="mt-10 max-w-[900px]">
+          {status === 'done' && (
+            <div className="rounded-xl border border-line bg-panel p-6 md:p-8">
+              <p className="display text-2xl md:text-4xl leading-[1.05]">{result}</p>
+              <div className="mt-6 flex flex-wrap gap-3">
+                <button
+                  type="button"
+                  onClick={copyHook}
+                  className="rounded-md border border-bone px-5 py-2 font-semibold"
+                >
+                  {copied ? 'Copied' : 'Copy'}
+                </button>
+                <button
+                  type="button"
+                  onClick={generate}
+                  className="rounded-md px-5 py-2 font-semibold text-amber hover:underline"
+                >
+                  Try another
+                </button>
+              </div>
+              <p className="mt-6 text-sm text-dust">Written by Gemini</p>
             </div>
-          </div>
-        )}
+          )}
+          {status === 'error' && <p className="text-bone">{result}</p>}
+        </div>
       </div>
     </section>
   );

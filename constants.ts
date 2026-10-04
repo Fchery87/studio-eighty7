@@ -10,9 +10,9 @@ export const SECTIONS = [
 ] as const;
 
 export const STATS: Stat[] = [
-  { label: 'Tracks Produced', value: '870+' },
-  { label: 'Global Streams', value: '2M+' },
-  { label: 'Years Active', value: '12+' },
+  { label: 'Tracks produced', value: '870+' },
+  { label: 'Streams', value: '2M+' },
+  { label: 'Years', value: '12+' },
 ];
 
 export const GENRES: Genre[] = [

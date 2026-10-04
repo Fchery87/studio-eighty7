@@ -153,6 +153,7 @@ const ContactRequestSchema = z.object({
         .replace(/[\x00-\x1F\x7F]/g, '') // Remove control characters
         .trim();
     }),
+  service: z.string().max(100).optional(),
 });
 
 // Initialize Google Gemini AI
@@ -241,7 +242,7 @@ app.post('/api/contact', contactRateLimiter, async (req: Request, res: Response)
     // Validate request body
     const validatedData = ContactRequestSchema.parse(req.body);
 
-    const { name, email, message } = validatedData;
+    const { name, email, message, service } = validatedData;
 
     // Log submission (without exposing sensitive data)
     console.log(`Contact form submission from: ${email} (${name})`);
@@ -276,6 +277,7 @@ app.post('/api/contact', contactRateLimiter, async (req: Request, res: Response)
       timestamp: new Date().toISOString(),
       from: email,
       name: name,
+      service: service,
       messageLength: message.length,
     });
 
