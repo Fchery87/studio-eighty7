@@ -33,7 +33,7 @@ const About: React.FC = () => {
           <ul className="mt-10 grid grid-cols-3 gap-6">
             {STATS.map((stat) => (
               <li key={stat.label}>
-                <p className="display text-4xl">{stat.value}</p>
+                <p className="display text-2xl md:text-4xl">{stat.value}</p>
                 <p className="mt-2 text-sm text-dust">{stat.label}</p>
               </li>
             ))}

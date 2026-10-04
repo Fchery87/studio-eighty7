@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import Navbar from './components/Navbar';
+import Header from './components/Header';
 import Hero from './components/Hero';
 import Listen from './components/Listen';
 import Services from './components/Services';
@@ -9,6 +9,7 @@ import AiOracle from './components/AiOracle';
 import Contact from './components/Contact';
 import Footer from './components/Footer';
 import { PlayerProvider } from './components/player/PlayerProvider';
+import { SECTIONS } from './constants';
 import { fetchAlbums, fetchServices } from './services/wordpressService';
 import type { Album, Service } from './types';
 
@@ -22,6 +23,10 @@ const App: React.FC = () => {
     fetchAlbums().then(setAlbums);
   }, []);
 
+  const sections = SECTIONS.filter(
+    (section) => section.id !== 'records' || albums.length > 0
+  );
+
   const bookService = (title: string) => {
     setSelectedService(title);
     document.getElementById('book')?.scrollIntoView();
@@ -30,7 +35,7 @@ const App: React.FC = () => {
   return (
     <PlayerProvider>
       <div className="min-h-screen bg-walnut text-bone font-sans selection:bg-amber selection:text-walnut">
-        <Navbar />
+        <Header sections={sections} />
         <main>
           <Hero />
           <Listen />
@@ -44,7 +49,7 @@ const App: React.FC = () => {
             onSelectService={setSelectedService}
           />
         </main>
-        <Footer />
+        <Footer sections={sections} />
       </div>
     </PlayerProvider>
   );

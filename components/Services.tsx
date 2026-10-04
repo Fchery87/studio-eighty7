@@ -30,7 +30,7 @@ const Services: React.FC<ServicesProps> = ({ services, onBook }) => {
                 <button
                   type="button"
                   onClick={() => onBook(service.title)}
-                  className="justify-self-start md:justify-self-end font-semibold text-amber hover:underline"
+                  className="justify-self-start whitespace-nowrap md:justify-self-end font-semibold text-amber hover:underline"
                 >
                   Book this
                 </button>

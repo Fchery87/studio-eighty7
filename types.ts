@@ -41,3 +41,8 @@ export enum AiState {
   SUCCESS = 'SUCCESS',
   ERROR = 'ERROR'
 }
+
+export interface Section {
+  id: string;
+  label: string;
+}
