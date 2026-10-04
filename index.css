@@ -1,6 +1,9 @@
 @import "tailwindcss";
 
 @theme {
+  --color-*: initial;
+  --text-*: initial;
+
   --color-walnut: #1a1411;
   --color-panel: #241c18;
   --color-line: #3a2e27;
@@ -57,5 +60,79 @@
   :focus-visible {
     outline: 2px solid var(--color-amber);
     outline-offset: 3px;
+  }
+}
+
+.range {
+  appearance: none;
+  width: 100%;
+  height: 20px;
+  background: transparent;
+  cursor: pointer;
+}
+
+.range::-webkit-slider-runnable-track {
+  height: 4px;
+  border-radius: 2px;
+  background: linear-gradient(
+    to right,
+    var(--color-amber) var(--fill, 0%),
+    var(--color-line) var(--fill, 0%)
+  );
+}
+
+.range::-moz-range-track {
+  height: 4px;
+  border-radius: 2px;
+  background: var(--color-line);
+}
+
+.range::-moz-range-progress {
+  height: 4px;
+  border-radius: 2px;
+  background: var(--color-amber);
+}
+
+.range::-webkit-slider-thumb {
+  appearance: none;
+  width: 14px;
+  height: 14px;
+  margin-top: -5px;
+  border: 0;
+  border-radius: 50%;
+  background: var(--color-bone);
+}
+
+.range::-moz-range-thumb {
+  width: 14px;
+  height: 14px;
+  border: 0;
+  border-radius: 50%;
+  background: var(--color-bone);
+}
+
+/* Lit segments are clipped in whole-segment steps (14 per meter) */
+.meter-lit {
+  clip-path: inset(calc(100% / 14 * 11) 0 0 0);
+}
+
+.meter-lit[data-live="true"] {
+  animation: meter 1.6s steps(14) infinite;
+  animation-delay: var(--delay, 0s);
+  animation-duration: var(--duration, 1.6s);
+}
+
+@keyframes meter {
+  0% { clip-path: inset(calc(100% / 14 * 10) 0 0 0); }
+  20% { clip-path: inset(calc(100% / 14 * 3) 0 0 0); }
+  40% { clip-path: inset(calc(100% / 14 * 8) 0 0 0); }
+  60% { clip-path: inset(calc(100% / 14 * 1) 0 0 0); }
+  80% { clip-path: inset(calc(100% / 14 * 6) 0 0 0); }
+  100% { clip-path: inset(calc(100% / 14 * 10) 0 0 0); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .meter-lit[data-live="true"] {
+    animation: none;
   }
 }
