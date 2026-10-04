@@ -19,6 +19,11 @@ const debugLog = (...args: unknown[]) => {
   }
 };
 
+// Mock data looks real on screen, so a fallback must never be silent in dev
+const warnFallback = (what: string, error: unknown) => {
+  if (isDev) console.warn(`[WordPress] ${what} failed, showing mock data:`, error);
+};
+
 export interface WPPost {
   id: number;
   title: { rendered: string };
@@ -71,7 +76,7 @@ export const fetchAlbums = async (): Promise<Album[]> => {
       return MOCK_ALBUMS;
     }
 
-    if (!response.ok) throw new Error('Failed to fetch albums');
+    if (!response.ok) throw new Error(`Failed to fetch albums: HTTP ${response.status}`);
 
     const data: WPPost[] = await response.json();
 
@@ -86,7 +91,7 @@ export const fetchAlbums = async (): Promise<Album[]> => {
       appleMusicUrl: getString(album, 'apple_music_url'),
     }));
   } catch (error) {
-    debugLog('Error fetching albums - using mock data');
+    warnFallback('Fetching albums', error);
     return MOCK_ALBUMS;
   }
 };
@@ -204,7 +209,7 @@ export const fetchTracks = async (): Promise<Track[]> => {
       return MOCK_TRACKS;
     }
 
-    if (!response.ok) throw new Error('Failed to fetch tracks');
+    if (!response.ok) throw new Error(`Failed to fetch tracks: HTTP ${response.status}`);
 
     const data: WPPost[] = await response.json();
 
@@ -227,7 +232,7 @@ export const fetchTracks = async (): Promise<Track[]> => {
       })
     );
   } catch (error) {
-    debugLog('Error fetching tracks - using mock data');
+    warnFallback('Fetching tracks', error);
     return MOCK_TRACKS;
   }
 };
@@ -244,7 +249,7 @@ export const fetchServices = async (): Promise<Service[]> => {
       return MOCK_SERVICES;
     }
 
-    if (!response.ok) throw new Error('Failed to fetch services');
+    if (!response.ok) throw new Error(`Failed to fetch services: HTTP ${response.status}`);
 
     const data: WPPost[] = await response.json();
 
@@ -254,7 +259,7 @@ export const fetchServices = async (): Promise<Service[]> => {
       description: decodeHtml(service.excerpt.rendered),
     }));
   } catch (error) {
-    debugLog('Error fetching services - using mock data');
+    warnFallback('Fetching services', error);
     return MOCK_SERVICES;
   }
 };

@@ -84,8 +84,13 @@ export default defineConfig({
         secure: true,
         rewrite: (path) => path.replace(/^\/wp-api/, ''),
         configure: (proxy, _options) => {
-          proxy.on('error', (err, _req, _res) => {
-            // Silently handle WordPress API errors - app will use mock data
+          // localhost cookies from every other dev app ride along; the host's
+          // nginx rejects the oversized header with a 400
+          proxy.on('proxyReq', (proxyReq) => {
+            proxyReq.removeHeader('cookie');
+          });
+          proxy.on('error', (err) => {
+            console.warn('WordPress proxy error:', err.message);
           });
         },
       },
