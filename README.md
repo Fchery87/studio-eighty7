@@ -202,7 +202,7 @@ Strict mode enabled with:
 lsof -ti:3000 | xargs kill -9
 
 # Or use a different port
-bun run dev --port 3001
+bun run dev --port 3003
 ```
 
 ### Build Errors

@@ -34,7 +34,7 @@ Edit `.env` and add your Google Gemini API key:
 
 ```env
 GEMINI_API_KEY=your_actual_gemini_api_key_here
-PORT=3001
+PORT=8787
 FRONTEND_URL=http://localhost:3000
 NODE_ENV=development
 ```
@@ -55,7 +55,7 @@ For production:
 npm start
 ```
 
-The server will start on port 3001 (default) and log its status.
+The server will start on port 8787 (default) and log its status.
 
 ## API Endpoint
 
@@ -117,7 +117,7 @@ Health check endpoint (not rate-limited).
    npm run dev
    ```
 
-The Vite dev server will proxy `/api` requests to `http://localhost:3001`.
+The Vite dev server will proxy `/api` requests to `http://localhost:8787`.
 
 ### Production Mode
 
@@ -125,7 +125,7 @@ For production deployment:
 1. Build the frontend: `npm run build`
 2. Configure your production web server (e.g., Nginx, Apache) to:
    - Serve the frontend static files from `/dist`
-   - Proxy `/api` requests to the backend server on port 3001
+   - Proxy `/api` requests to the backend server on port 8787
 
 Or use a process manager like PM2 to run both services:
 

@@ -16,8 +16,8 @@ if [ -f "server/.env" ]; then
 fi
 
 # Check if backend server is running
-if nc -z localhost 3001 2>/dev/null; then
-    echo "✅ Backend server detected on port 3001"
+if nc -z localhost 8787 2>/dev/null; then
+    echo "✅ Backend server detected on port 8787"
 else
     echo "ℹ️  Backend server not running (API features will be limited)"
     echo "   To start backend: cd server && npm start"

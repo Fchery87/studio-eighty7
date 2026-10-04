@@ -6,12 +6,12 @@ import { GoogleGenAI } from '@google/genai';
 import { z } from 'zod';
 import dotenv from 'dotenv';
 
-// Load environment variables
-dotenv.config();
+// server/.env wins over the shell, so a GEMINI_API_KEY exported for another tool cannot leak in
+dotenv.config({ override: true });
 
 // Validate required environment variables
 const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
-const PORT = process.env.PORT || 3001;
+const PORT = process.env.PORT || 8787;
 const FRONTEND_URL = process.env.FRONTEND_URL || 'http://localhost:3000';
 
 if (!GEMINI_API_KEY) {
@@ -157,7 +157,11 @@ const ContactRequestSchema = z.object({
 });
 
 // Initialize Google Gemini AI
-const ai = new GoogleGenAI({ apiKey: GEMINI_API_KEY });
+// Pinned so a GOOGLE_GEMINI_BASE_URL in the shell cannot reroute requests away from Google
+const ai = new GoogleGenAI({
+  apiKey: GEMINI_API_KEY,
+  httpOptions: { baseUrl: 'https://generativelanguage.googleapis.com' },
+});
 
 // Health check endpoint (no rate limiting)
 app.get('/health', (req: Request, res: Response) => {
@@ -180,7 +184,7 @@ app.post('/api/generate', generateRateLimiter, async (req: Request, res: Respons
 
     // Call Google Gemini API
     const response = await ai.models.generateContent({
-      model: 'gemini-3-flash-preview',
+      model: 'gemini-3.6-flash',
       contents: `You are a legendary music producer and lyricist for Studio Eighty7. 
       The user needs a song concept, title, or a one-line lyric hook for: "${topic}".
       Provide a punchy, moody, or hard-hitting creative text snippet.
@@ -212,7 +216,8 @@ app.post('/api/generate', generateRateLimiter, async (req: Request, res: Respons
     // Handle Gemini API errors
     if (error && typeof error === 'object' && 'status' in error) {
       const status = (error as any).status;
-      if (status === 401 || status === 403) {
+      if (status === 400 || status === 401 || status === 403) {
+        console.error('Gemini rejected the request. Check GEMINI_API_KEY in server/.env (create one at https://aistudio.google.com/apikey).');
         res.status(500).json({
           error: 'Service unavailable',
           message: 'The signal is lost. Check your frequency.',

@@ -40,7 +40,7 @@ The backend proxy server is required for these features to work:
 4. Edit `.env` and add your Gemini API key:
    ```
    GEMINI_API_KEY=your_actual_api_key_here
-   PORT=3001
+   PORT=8787
    ```
 
 5. Start the backend server:
@@ -48,7 +48,7 @@ The backend proxy server is required for these features to work:
    npm start
    ```
 
-The backend will run on http://localhost:3001
+The backend will run on http://localhost:8787
 
 ### Backend Features
 
@@ -77,7 +77,7 @@ npm start
 
 **Cause**: Backend server not running or missing API key
 **Solution**:
-- Ensure backend is running on port 3001
+- Ensure backend is running on port 8787
 - Check `.env` file has valid GEMINI_API_KEY
 - Check backend console for errors
 
