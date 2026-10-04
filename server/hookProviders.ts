@@ -32,7 +32,7 @@ const deepSeek = (apiKey: string): HookProvider => ({
         thinking: { type: 'disabled' },
         // DeepSeek recommends a high temperature for creative writing
         temperature: 1.3,
-        max_tokens: 160,
+        max_tokens: 600,
       }),
       signal: AbortSignal.timeout(20_000),
     });

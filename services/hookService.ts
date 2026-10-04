@@ -20,12 +20,14 @@ const logError = (context: string, error: unknown): void => {
   }
 };
 
+import type { HookRequest } from '@/server/hookOptions';
+
 export interface Hook {
   text: string;
   provider: string;
 }
 
-export const generateHook = async (topic: string): Promise<Hook> => {
+export const generateHook = async (request: HookRequest): Promise<Hook> => {
   // Use proxied API path - Vite proxy handles routing to backend in development
   // In production, the backend should be configured to serve the frontend and handle API routes
   const apiUrl = '/api/generate';
@@ -37,7 +39,7 @@ export const generateHook = async (topic: string): Promise<Hook> => {
         'Content-Type': 'application/json',
         'Accept': 'application/json',
       },
-      body: JSON.stringify({ topic }),
+      body: JSON.stringify(request),
     });
 
     if (!response.ok) {

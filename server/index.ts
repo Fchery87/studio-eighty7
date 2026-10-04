@@ -4,6 +4,7 @@ import helmet from 'helmet';
 import rateLimit from 'express-rate-limit';
 import { configuredProviders, ProviderError } from './hookProviders.js';
 import { hookMessages } from './hookPrompt.js';
+import { HOOK_BARS, HOOK_GENRE_IDS, type HookBars } from './hookOptions.js';
 import { z } from 'zod';
 import dotenv from 'dotenv';
 
@@ -102,6 +103,13 @@ const GenerateRequestSchema = z.object({
       // Basic sanitization: remove potentially dangerous characters
       return val.replace(/[<>]/g, '');
     }),
+  genre: z.enum(HOOK_GENRE_IDS).default('any'),
+  bars: z
+    .number()
+    .refine((value): value is HookBars => (HOOK_BARS as readonly number[]).includes(value), {
+      message: `Bars must be one of ${HOOK_BARS.join(', ')}`,
+    })
+    .default(4),
 });
 
 // Contact form validation schema
@@ -166,13 +174,13 @@ app.get('/health', (req: Request, res: Response) => {
 
 // Generate endpoint with rate limiting and validation
 // Models sometimes add quotes, labels or blank lines despite the prompt
-const cleanHook = (raw: string) =>
+const cleanHook = (raw: string, bars: number) =>
   raw
     .split('\n')
     // Double quotes only: a trailing apostrophe is slang ("rollin'"), not a quote
-    .map((line) => line.trim().replace(/^["“”]+|["“”]+$/g, '').trim())
+    .map((line) => line.trim().replace(/^\d+[.):]\s*/, '').replace(/^["“”]+|["“”]+$/g, '').trim())
     .filter((line) => line && !/^(hook|chorus|title)\s*:?$/i.test(line))
-    .slice(0, 6)
+    .slice(0, bars)
     .join('\n');
 
 app.post('/api/generate', generateRateLimiter, async (req: Request, res: Response) => {
@@ -190,11 +198,11 @@ app.post('/api/generate', generateRateLimiter, async (req: Request, res: Respons
     return;
   }
 
-  const messages = hookMessages(parsed.data.topic);
+  const messages = hookMessages(parsed.data);
   let rateLimited = false;
   for (const provider of providers) {
     try {
-      const hook = cleanHook(await provider.generate(messages));
+      const hook = cleanHook(await provider.generate(messages), parsed.data.bars);
       if (!hook) throw new ProviderError(provider.name, 502, 'empty response');
       res.status(200).json({ success: true, data: hook, provider: provider.name });
       return;

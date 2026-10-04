@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { generateHook } from '../services/hookService';
+import { HOOK_BARS, HOOK_GENRES, HOOK_GENRE_IDS, type HookBars, type HookGenre } from '@/server/hookOptions';
 
 // Rate limiting configuration
 const RATE_LIMIT_COOLDOWN = 5000; // 5 seconds
@@ -74,6 +75,9 @@ const AiOracle: React.FC = () => {
   const [topic, setTopic] = useState('');
   const [result, setResult] = useState('');
   const [provider, setProvider] = useState('');
+  const [genre, setGenre] = useState<HookGenre>('any');
+  const [bars, setBars] = useState<HookBars>(4);
+  const [madeFor, setMadeFor] = useState('');
   const [status, setStatus] = useState<HookStatus>('idle');
   const [cooldownRemaining, setCooldownRemaining] = useState(0);
   const [validationError, setValidationError] = useState('');
@@ -162,9 +166,10 @@ const AiOracle: React.FC = () => {
     saveLastRequestTime(Date.now());
 
     try {
-      const hook = await generateHook(sanitizedTopic);
+      const hook = await generateHook({ topic: sanitizedTopic, genre, bars });
       setResult(hook.text);
       setProvider(hook.provider);
+      setMadeFor(`${genre === 'any' ? 'Any genre' : HOOK_GENRES[genre].label}, ${bars} bars`);
       setStatus('done');
     } catch (error) {
       // Handle different error types with user-friendly messages
@@ -227,11 +232,53 @@ const AiOracle: React.FC = () => {
       <div className="mx-auto max-w-[1200px] px-6">
         <h2 className="display text-4xl md:text-6xl mb-6">Hook lab</h2>
         <p className="text-dust mb-10 max-w-[65ch]">
-          Type a mood or a place. Get a hook to start writing from.
+          Pick a genre and a length, type a mood or a place, and get a hook to take into the booth.
         </p>
 
         <form onSubmit={handleSubmit} className="max-w-[640px]">
-          <label htmlFor="hook-topic" className="sr-only">
+          <div className="mb-6 flex flex-col gap-6 sm:flex-row sm:items-end">
+            <div>
+              <label htmlFor="hook-genre" className="mb-2 block text-sm text-dust">
+                Genre
+              </label>
+              <select
+                id="hook-genre"
+                value={genre}
+                onChange={(e) => setGenre(e.target.value as HookGenre)}
+                className="w-full rounded-md border border-line bg-panel px-4 py-3 text-bone sm:w-56"
+              >
+                {HOOK_GENRE_IDS.map((id) => (
+                  <option key={id} value={id}>
+                    {HOOK_GENRES[id].label}
+                  </option>
+                ))}
+              </select>
+            </div>
+            <fieldset>
+              <legend className="mb-2 text-sm text-dust">Length in bars</legend>
+              <div className="flex flex-wrap gap-2">
+                {HOOK_BARS.map((option) => (
+                  <label
+                    key={option}
+                    className={`data min-w-12 cursor-pointer rounded-md border px-4 py-3 text-center text-base has-[:focus-visible]:outline-2 has-[:focus-visible]:outline-amber has-[:focus-visible]:outline-offset-2 ${
+                      bars === option ? 'border-bone bg-bone text-walnut' : 'border-line text-bone hover:border-dust'
+                    }`}
+                  >
+                    <input
+                      type="radio"
+                      name="hook-bars"
+                      value={option}
+                      checked={bars === option}
+                      onChange={() => setBars(option)}
+                      className="sr-only"
+                    />
+                    {option}
+                  </label>
+                ))}
+              </div>
+            </fieldset>
+          </div>
+          <label htmlFor="hook-topic" className="mb-2 block text-sm text-dust">
             Mood or place
           </label>
           <div className="flex flex-col sm:flex-row gap-3">
@@ -240,7 +287,7 @@ const AiOracle: React.FC = () => {
               type="text"
               value={topic}
               onChange={handleInputChange}
-              placeholder="Late night, the grind, neon city"
+              placeholder="First big check, Lagos rooftop, she left on read"
               maxLength={MAX_INPUT_LENGTH}
               aria-invalid={Boolean(validationError)}
               aria-describedby="hook-help"
@@ -268,7 +315,24 @@ const AiOracle: React.FC = () => {
         <div aria-live="polite" className="mt-10 max-w-[900px]">
           {status === 'done' && (
             <div className="rounded-xl border border-line bg-panel p-6 md:p-8">
-              <p className="display whitespace-pre-line text-2xl md:text-[2rem] leading-[1.15]">{result}</p>
+              <ol className="space-y-2">
+                {result.split('\n').map((line, i) => (
+                  <li key={i} className="grid grid-cols-[2rem_1fr] items-baseline gap-3">
+                    <span className="data text-sm text-dust">{i + 1}</span>
+                    <span className="display text-xl md:text-2xl leading-[1.2]">
+                      {line.split(/(\([^)]*\))/).map((part, j) =>
+                        part.startsWith('(') ? (
+                          <span key={j} className="text-dust">
+                            {part}
+                          </span>
+                        ) : (
+                          part
+                        )
+                      )}
+                    </span>
+                  </li>
+                ))}
+              </ol>
               <div className="mt-6 flex flex-wrap gap-3">
                 <button
                   type="button"
@@ -285,7 +349,7 @@ const AiOracle: React.FC = () => {
                   Try another
                 </button>
               </div>
-              <p className="mt-6 text-sm text-dust">Written by {provider}</p>
+              <p className="mt-6 text-sm text-dust">{madeFor}. Written by {provider}.</p>
             </div>
           )}
           {status === 'error' && <p className="text-bone">{result}</p>}
