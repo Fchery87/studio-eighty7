@@ -1,12 +1,12 @@
 # Services - Studio Eighty7
 
 ## Package Identity
-API integration layer for Studio Eighty7 application. Provides TypeScript interfaces and async functions for external APIs (WordPress CMS and Google Gemini AI).
+API integration layer for Studio Eighty7. Provides TypeScript interfaces and async functions for WordPress and the server's Hook lab endpoint.
 
 ## Setup & Run
 - No separate setup (uses project dev server)
 - Services are imported directly by components
-- Environment variable required for Gemini: `GEMINI_API_KEY` in `server/.env` (server only)
+- AI keys live in `server/.env` (server only): `DEEPSEEK_API_KEY` and/or `GEMINI_API_KEY`. The Hook lab tries DeepSeek first
 
 ## Patterns & Conventions
 
@@ -57,14 +57,14 @@ export const fetchData = async (): Promise<ReturnType[]> => {
 
 ### Service Examples
 - **WordPress API fetcher**: `services/wordpressService.ts` (fetches albums, tracks, services)
-- **AI API integration**: `services/geminiService.ts` (calls the server's `/api/generate`)
+- **AI API integration**: `services/hookService.ts` (calls the server's `/api/generate`, which picks DeepSeek or Gemini in `server/hookProviders.ts`)
 - **Error handling pattern**: `components/useRemote.ts` and `components/Services.tsx`
 - **Data transformation**: `fetchServices` in `wordpressService.ts`
 
 ## Touch Points / Key Files
 - WordPress API URL constant: `wordpressService.ts:1`
 - WordPress types: `wordpressService.ts:3-37` (WPPost, WPAlbum, WPTrack interfaces)
-- Gemini AI client: `geminiService.ts:1` (GoogleGenAI import)
+- Hook providers (DeepSeek, Gemini): `server/hookProviders.ts`
 - Environment variable config: `vite.config.ts:14-15` (API key injection)
 
 ## JIT Index Hints

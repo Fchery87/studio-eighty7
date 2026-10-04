@@ -19,11 +19,11 @@ npm run preview               # Preview production build
 - All API calls in `services/` directory
 - Type definitions in `types.ts`
 - Static content in `constants.ts`
-- Environment: secrets live only in `server/.env` (`GEMINI_API_KEY`). The frontend calls `/api/*` and never sees a key
+- Environment: secrets live only in `server/.env` (`DEEPSEEK_API_KEY`, `GEMINI_API_KEY`). The frontend calls `/api/*` and never sees a key
 
 ## Security & Secrets
 - Never commit `.env.local` or any `.env.*` files
-- Never expose API keys to the frontend bundle (no Vite `define`, no `VITE_` secrets). Gemini is called from `server/index.ts`
+- Never expose API keys to the frontend bundle (no Vite `define`, no `VITE_` secrets). DeepSeek and Gemini are called from `server/hookProviders.ts`
 - WordPress API URL is public (`https://studioeighty7.com/wp-json/wp/v2`)
 - No PII handling
 
@@ -31,7 +31,7 @@ npm run preview               # Preview production build
 
 ### Directory Structure
 - Components: `components/` → page sections, plus `components/player/` (shared audio player)
-- Services: `services/` → WordPress & Gemini AI integrations
+- Services: `services/` → WordPress and Hook lab clients
 - Types: `types.ts` → TypeScript interfaces & enums
 - Constants: `constants.ts` → Static data (albums, tracks, services, etc.)
 - Entry: `App.tsx`, `index.tsx`, `index.html`

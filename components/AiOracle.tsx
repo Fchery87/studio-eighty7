@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
-import { generateCreativeIdea } from '../services/geminiService';
+import { generateHook } from '../services/hookService';
 
 // Rate limiting configuration
 const RATE_LIMIT_COOLDOWN = 5000; // 5 seconds
@@ -73,6 +73,7 @@ type HookStatus = 'idle' | 'loading' | 'done' | 'error';
 const AiOracle: React.FC = () => {
   const [topic, setTopic] = useState('');
   const [result, setResult] = useState('');
+  const [provider, setProvider] = useState('');
   const [status, setStatus] = useState<HookStatus>('idle');
   const [cooldownRemaining, setCooldownRemaining] = useState(0);
   const [validationError, setValidationError] = useState('');
@@ -161,8 +162,9 @@ const AiOracle: React.FC = () => {
     saveLastRequestTime(Date.now());
 
     try {
-      const slogan = await generateCreativeIdea(sanitizedTopic);
-      setResult(slogan);
+      const hook = await generateHook(sanitizedTopic);
+      setResult(hook.text);
+      setProvider(hook.provider);
       setStatus('done');
     } catch (error) {
       // Handle different error types with user-friendly messages
@@ -283,7 +285,7 @@ const AiOracle: React.FC = () => {
                   Try another
                 </button>
               </div>
-              <p className="mt-6 text-sm text-dust">Written by Gemini</p>
+              <p className="mt-6 text-sm text-dust">Written by {provider}</p>
             </div>
           )}
           {status === 'error' && <p className="text-bone">{result}</p>}
