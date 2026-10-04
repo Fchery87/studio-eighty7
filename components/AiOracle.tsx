@@ -252,14 +252,14 @@ const AiOracle: React.FC = () => {
 
           {/* Validation error message */}
           {validationError && (
-            <div className="mt-3 text-sm text-red-400 animate-in fade-in slide-in-from-top-2">
+            <div className="mt-3 text-sm text-red-400">
               {validationError}
             </div>
           )}
 
           {/* Cooldown message */}
           {cooldownRemaining > 0 && !validationError && (
-            <div className="mt-3 text-sm text-yellow-400 animate-in fade-in slide-in-from-top-2 flex items-center justify-center gap-2">
+            <div className="mt-3 text-sm text-yellow-400 flex items-center justify-center gap-2">
               <Clock size={14} />
               <span>Wait {cooldownRemaining} second{cooldownRemaining !== 1 ? 's' : ''} before next request</span>
             </div>
@@ -267,7 +267,7 @@ const AiOracle: React.FC = () => {
         </form>
 
         {result && (
-          <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
+          <div className="">
             <div className="bg-white/5 border border-samurai-red/30 p-8 relative overflow-hidden group">
                <div className="absolute top-0 left-0 w-1 h-full bg-samurai-red"></div>
                <p className="font-display text-2xl md:text-4xl text-white uppercase italic leading-tight">

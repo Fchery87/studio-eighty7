@@ -1,12 +1,13 @@
 import path from 'path';
 import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
+import tailwindcss from '@tailwindcss/vite';
 
 // Development CSP - more permissive for local development
 const DEV_CSP = [
   "default-src 'self'",
-  "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://cdn.tailwindcss.com https://esm.sh https://studioeighty7.com",
-  "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://cdn.tailwindcss.com",
+  "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://studioeighty7.com",
+  "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
   "font-src 'self' https://fonts.gstatic.com https://fonts.googleapis.com",
   "img-src 'self' https: data: http://localhost:*",
   "connect-src 'self' https: http: ws: wss:",
@@ -20,8 +21,8 @@ const DEV_CSP = [
 // Production CSP - strict with necessary CDNs and APIs
 const PROD_CSP = [
   "default-src 'self'",
-  "script-src 'self' 'unsafe-inline' https://cdn.tailwindcss.com https://esm.sh",
-  "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://cdn.tailwindcss.com",
+  "script-src 'self' 'unsafe-inline'",
+  "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
   "font-src 'self' https://fonts.gstatic.com https://fonts.googleapis.com",
   "img-src 'self' https: data:",
   "connect-src 'self' https://studioeighty7.com https://generativelanguage.googleapis.com",
@@ -94,7 +95,7 @@ export default defineConfig({
     port: 4173,
     headers: PROD_SECURITY_HEADERS,
   },
-  plugins: [react()],
+  plugins: [react(), tailwindcss()],
   resolve: {
     alias: {
       '@': path.resolve(__dirname, '.'),

@@ -6,8 +6,7 @@
   "scripts": {
     "dev": "vite",
     "build": "vite build",
-    "preview": "vite preview",
-    "sri:generate": "curl -sL https://cdn.tailwindcss.com | openssl dgst -sha384 -binary | openssl base64 -A"
+    "preview": "vite preview"
   },
   "dependencies": {
     "lucide-react": "^0.562.0",
@@ -15,8 +14,10 @@
     "react-dom": "^19.2.3"
   },
   "devDependencies": {
+    "@tailwindcss/vite": "^4.3.3",
     "@types/node": "^22.19.3",
     "@vitejs/plugin-react": "^5.0.0",
+    "tailwindcss": "^4.3.3",
     "terser": "^5.44.1",
     "typescript": "~5.8.2",
     "vite": "^6.2.0",
