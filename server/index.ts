@@ -124,7 +124,7 @@ const ContactRequestSchema = z.object({
         .replace(/[\x00-\x1F\x7F]/g, '') // Remove control characters
         .trim();
     })
-    .refine((val) => /^[a-zA-Z0-9\s\-\.'’]+$/.test(val), {
+    .refine((val) => /^[\p{L}\p{M}0-9\s\-\.'’]+$/u.test(val), {
       message: 'Name contains invalid characters',
     }),
   email: z

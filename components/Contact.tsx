@@ -2,13 +2,16 @@ import React, { useState } from 'react';
 import { z } from 'zod';
 import type { Service } from '@/types';
 
+// The production CSP forbids eval; zod's JIT probe would trip it
+z.config({ jitless: true });
+
 // Client-side validation schema matching server
 const ContactSchema = z.object({
   name: z
     .string()
     .min(2, 'Name must be at least 2 characters')
     .max(100, 'Name must be 100 characters or less')
-    .regex(/^[a-zA-Z0-9\s\-\.'’]+$/, 'Name contains invalid characters')
+    .regex(/^[\p{L}\p{M}0-9\s\-\.'’]+$/u, 'Name contains invalid characters')
     .transform((val) => val.trim()),
   email: z
     .string()

@@ -82,7 +82,7 @@ const Header: React.FC<HeaderProps> = ({ sections }) => {
           </a>
 
           <nav aria-label="Sections" className="hidden md:flex items-center gap-6 ml-auto">
-            {sections.map(({ id, label }) => {
+            {sections.filter(({ id }) => id !== 'book').map(({ id, label }) => {
               const active = id === activeId;
               return (
                 <a

@@ -40,7 +40,7 @@ const Hero: React.FC = () => {
               type="button"
               onClick={playLatest}
               disabled={!canPlay}
-              className="inline-flex items-center gap-2 rounded-md bg-rec px-6 py-3 font-semibold text-bone disabled:opacity-50"
+              className="inline-flex min-w-[11.5rem] items-center justify-center gap-2 rounded-md bg-rec px-6 py-3 font-semibold text-bone disabled:opacity-50"
             >
               {latestPlaying ? <Pause size={18} /> : <Play size={18} />}
               {latestPlaying ? 'Pause' : 'Play the latest'}
@@ -66,7 +66,7 @@ const Hero: React.FC = () => {
           >
             {GENRES.map((genre, i) => (
               <div key={genre.name} className="flex flex-col items-center gap-3">
-                <div className="flex gap-2 h-44">
+                <div className="flex gap-2 h-44 lg:h-80">
                   <div className="relative w-3">
                     <div className="absolute inset-0 flex flex-col gap-[2px]">
                       {Array.from({ length: SEGMENTS }, (_, s) => (
