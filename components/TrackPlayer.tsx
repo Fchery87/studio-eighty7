@@ -1,134 +1,35 @@
-import React, { useState, useEffect, useRef } from 'react';
-import { fetchTracks } from '@/services/wordpressService';
-import type { Track } from '@/types';
+import React from 'react';
+import { usePlayer } from '@/components/player/PlayerProvider';
+import { formatTime } from '@/components/player/formatTime';
 import { Play, Pause, SkipBack, SkipForward, Volume2, VolumeX } from 'lucide-react';
 
 const TrackPlayer: React.FC = () => {
-  const [tracks, setTracks] = useState<Track[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [currentTrack, setCurrentTrack] = useState(0);
-  const [isPlaying, setIsPlaying] = useState(false);
-  const [currentTime, setCurrentTime] = useState(0);
-  const [duration, setDuration] = useState(0);
-  const [volume, setVolume] = useState(0.8);
-  const [isMuted, setIsMuted] = useState(false);
-  const [trackDurations, setTrackDurations] = useState<Record<string, string>>({});
+  const {
+    tracks,
+    loading,
+    index: currentTrack,
+    track,
+    status,
+    currentTime,
+    duration,
+    volume,
+    muted: isMuted,
+    durations: trackDurations,
+    select: selectTrack,
+    toggle: togglePlay,
+    next: nextTrack,
+    prev: prevTrack,
+    seek,
+    setVolume,
+    toggleMute,
+  } = usePlayer();
+  const isPlaying = status === 'playing';
 
-  const audioRef = useRef<HTMLAudioElement>(null);
-  const track = tracks[currentTrack];
+  const handleSeek = (e: React.ChangeEvent<HTMLInputElement>) =>
+    seek(parseFloat(e.target.value));
 
-  useEffect(() => {
-    loadTracks();
-  }, []);
-
-  const loadTracks = async () => {
-    try {
-      const data = await fetchTracks();
-      setTracks(data);
-    } catch (error) {
-      console.error('Error loading tracks:', error);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  // Preload all track durations in the background
-  useEffect(() => {
-    if (tracks.length === 0) return;
-    
-    tracks.forEach((t) => {
-      if (!t.audioUrl || trackDurations[t.id]) return;
-      
-      const audio = new Audio();
-      audio.preload = 'metadata';
-      audio.src = t.audioUrl;
-      audio.onloadedmetadata = () => {
-        const formatted = formatTime(audio.duration);
-        setTrackDurations(prev => ({ ...prev, [t.id]: formatted }));
-      };
-    });
-  }, [tracks]);
-
-  // Sync isPlaying with audio element
-  useEffect(() => {
-    if (!audioRef.current) return;
-    
-    if (isPlaying) {
-      audioRef.current.play().catch(e => console.log('Playback blocked or failed:', e));
-    } else {
-      audioRef.current.pause();
-    }
-  }, [isPlaying, currentTrack]);
-
-  // Sync volume with audio element
-  useEffect(() => {
-    if (!audioRef.current) return;
-    audioRef.current.volume = isMuted ? 0 : volume;
-  }, [volume, isMuted]);
-
-  const togglePlay = () => {
-    if (!track?.audioUrl) return;
-    setIsPlaying(!isPlaying);
-  };
-
-  const nextTrack = () => {
-    if (!tracks.length) return;
-    setCurrentTrack((prev) => (prev + 1) % tracks.length);
-    setCurrentTime(0);
-  };
-
-  const prevTrack = () => {
-    if (!tracks.length) return;
-    setCurrentTrack((prev) => (prev - 1 + tracks.length) % tracks.length);
-    setCurrentTime(0);
-  };
-
-  const selectTrack = (index: number) => {
-    setCurrentTrack(index);
-    setCurrentTime(0);
-    setIsPlaying(Boolean(tracks[index]?.audioUrl));
-  };
-
-  const handleTimeUpdate = () => {
-    if (audioRef.current) {
-      setCurrentTime(audioRef.current.currentTime);
-    }
-  };
-
-  const handleLoadedMetadata = () => {
-    if (audioRef.current && track) {
-      const realDuration = audioRef.current.duration;
-      setDuration(realDuration);
-      // Store the formatted duration for this track
-      const formatted = formatTime(realDuration);
-      setTrackDurations(prev => ({ ...prev, [track.id]: formatted }));
-    }
-  };
-
-  const handleSeek = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const time = parseFloat(e.target.value);
-    setCurrentTime(time);
-    if (audioRef.current) {
-      audioRef.current.currentTime = time;
-    }
-  };
-
-  const handleVolumeChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const vol = parseFloat(e.target.value);
-    setVolume(vol);
-    if (vol > 0) setIsMuted(false);
-  };
-
-  const toggleMute = () => {
-    setIsMuted(!isMuted);
-  };
-
-  const formatTime = (seconds: number) => {
-    if (isNaN(seconds)) return '0:00';
-    const mins = Math.floor(seconds / 60);
-    const secs = Math.floor(seconds % 60);
-    return `${mins}:${secs.toString().padStart(2, '0')}`;
-  };
+  const handleVolumeChange = (e: React.ChangeEvent<HTMLInputElement>) =>
+    setVolume(parseFloat(e.target.value));
 
   if (loading) {
     return (
@@ -142,13 +43,6 @@ const TrackPlayer: React.FC = () => {
 
   return (
     <section id="music" className="py-24 bg-samurai-black relative">
-      <audio
-        ref={audioRef}
-        src={track?.audioUrl || undefined}
-        onTimeUpdate={handleTimeUpdate}
-        onLoadedMetadata={handleLoadedMetadata}
-        onEnded={nextTrack}
-      />
       <div className="max-w-7xl mx-auto px-6">
         <div className="mb-16">
           <h2 className="text-sm font-bold tracking-[0.3em] text-samurai-red mb-2 uppercase">Featured Tracks</h2>
