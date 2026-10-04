@@ -183,7 +183,8 @@ app.post('/api/generate', generateRateLimiter, async (req: Request, res: Respons
   let rateLimited = false;
   for (const provider of providers) {
     try {
-      const hook = await provider.generate(prompt);
+      // Models often wrap the line in quotes; the page sets it as display type without them
+      const hook = (await provider.generate(prompt)).replace(/^["“']+|["”']+$/g, '').trim();
       if (!hook) throw new ProviderError(provider.name, 502, 'empty response');
       res.status(200).json({ success: true, data: hook, provider: provider.name });
       return;
