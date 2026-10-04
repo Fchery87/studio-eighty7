@@ -19,18 +19,18 @@ npm run preview               # Preview production build
 - All API calls in `services/` directory
 - Type definitions in `types.ts`
 - Static content in `constants.ts`
-- Environment: Add API keys to `.env.local` (use `process.env.API_KEY` in code, mapped via vite.config.ts)
+- Environment: secrets live only in `server/.env` (`GEMINI_API_KEY`). The frontend calls `/api/*` and never sees a key
 
 ## Security & Secrets
 - Never commit `.env.local` or any `.env.*` files
-- API keys injected via Vite's `define` config (see `vite.config.ts:14-15`)
+- Never expose API keys to the frontend bundle (no Vite `define`, no `VITE_` secrets). Gemini is called from `server/index.ts`
 - WordPress API URL is public (`https://studioeighty7.com/wp-json/wp/v2`)
 - No PII handling
 
 ## JIT Index - Directory Map
 
 ### Directory Structure
-- Components: `components/` → 9 page-section components
+- Components: `components/` → page sections, plus `components/player/` (shared audio player)
 - Services: `services/` → WordPress & Gemini AI integrations
 - Types: `types.ts` → TypeScript interfaces & enums
 - Constants: `constants.ts` → Static data (albums, tracks, services, etc.)
@@ -40,7 +40,7 @@ npm run preview               # Preview production build
 - Find a component: `rg -n "const \w+: React\.FC" components/`
 - Find TypeScript interface: `rg -n "export (interface|type|enum)" types.ts`
 - Find service function: `rg -n "export const (fetch|generate)" services/`
-- Find constant arrays: `rg -n "export const (NAV_ITEMS|STATS|SERVICES|GENRES|ALBUMS|FEATURED_TRACKS)" constants.ts`
+- Find constant arrays: `rg -n "export const (SECTIONS|STATS|GENRES)" constants.ts`
 
 ## Definition of Done
 - Code compiles with TypeScript
